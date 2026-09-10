@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Radio, Globe2, BarChart3, Code2 } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, type View } from "@/lib/store";
 import { formatRate } from "@/lib/routing";
 import { Segmented } from "./ui";
 import { Simulator } from "./simulator";
@@ -10,8 +9,6 @@ import { Inspector } from "./inspector";
 import { JurisdictionPanel } from "./jurisdiction-panel";
 import { AttributionPanel } from "./attribution-panel";
 import type { Locale } from "@/lib/types";
-
-type View = "simulator" | "jurisdictions" | "attribution";
 
 const REPO_URL = "https://github.com/zafarahmed65/nick-demo";
 
@@ -29,8 +26,9 @@ export function Shell() {
     jurisdiction,
     jurisdictions,
     setJurisdictionCode,
+    view,
+    setView,
   } = useStore();
-  const [view, setView] = useState<View>("simulator");
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen lg:overflow-hidden">

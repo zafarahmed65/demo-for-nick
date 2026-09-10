@@ -12,6 +12,12 @@ the point is the engine, and the engine is what the brief asks about.
 
 ## What to look at, in order
 
+**0 — Or just press a scenario.** The simulator opens with three guided
+scenarios: a broker who does not respond, a broker at full capacity, and opening
+a new market. Each one sets the board and stops — you still pull the trigger.
+They exist because pressing the plain trigger once will most likely show a
+broker accepting in three seconds, which teaches you nothing about the system.
+
 **1 — Watch a lead get routed and escalated.** Open the routing simulator, set
 demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with
 real wall-clock timestamps: licence → geography → capacity → language → fair

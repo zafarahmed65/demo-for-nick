@@ -18,7 +18,14 @@ import {
   loadState,
   saveState,
   type HeldLead,
+  type HoldReason,
 } from "./persistence";
+import {
+  FORCED_BY_SCENARIO,
+  singleBrokerMunicipality,
+  type ForcedResponse,
+  type ScenarioKey,
+} from "./scenarios";
 import type {
   Agent,
   Jurisdiction,
@@ -28,7 +35,7 @@ import type {
   TraceEntry,
 } from "./types";
 
-export type { HeldLead };
+export type { HeldLead, HoldReason };
 
 /**
  * Single source of truth for the sandbox.
@@ -84,7 +91,16 @@ interface StoreValue {
   decline: () => void;
   reset: () => void;
   reassignHeld: (leadId: string) => void;
+
+  /** Which panel is on screen. Lifted here so a scenario can navigate. */
+  view: View;
+  setView: (v: View) => void;
+  jurisdictionFormOpen: boolean;
+  setJurisdictionFormOpen: (open: boolean) => void;
+  runScenario: (key: ScenarioKey) => void;
 }
+
+export type View = "simulator" | "jurisdictions" | "attribution";
 
 export interface NewJurisdictionInput {
   code: string;
@@ -143,6 +159,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   /* Gates the save effect. Without it the first render would immediately
      overwrite stored state with seed state, before the load has run. */
   const [hydrated, setHydrated] = useState(false);
+  const [view, setView] = useState<View>("simulator");
+  const [jurisdictionFormOpen, setJurisdictionFormOpen] = useState(false);
+
+  /* Scenario-forced responses, indexed by escalation level. Held in a ref
+     rather than state because a scenario sets it and immediately triggers a
+     lead — a state update would not be visible to that same call. */
+  const forcedRef = useRef<ForcedResponse[] | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const jurisdiction = useMemo(
@@ -199,7 +222,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (lead: Lead, plan: RoutingPlan, level: number, windowMs: number) => {
       const agent = plan.escalationOrder[level];
       const at = Date.now();
-      const willAccept = Math.random() < agent.responsiveness;
+      const forced = forcedRef.current?.[level];
+      const willAccept =
+        forced === undefined ? Math.random() < agent.responsiveness : forced === "accept";
       commitPhase({
         kind: "awaiting",
         state: {
@@ -219,7 +244,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const trigger = useCallback(
-    (override?: string) => {
+    (override?: string, keepScript = false) => {
+      if (!keepScript) forcedRef.current = null;
       const town = override ?? municipality;
       const lead = makeLead(jurisdiction.code, town, locale);
       const plan = routeLead(lead, jurisdiction, agents);
@@ -227,8 +253,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setTrace(plan.steps.map((entry, index) => ({ ...entry, batchIndex: index })));
 
       if (plan.escalationOrder.length === 0) {
+        // Nobody was ever eligible — a different problem from nobody replying.
         commitPhase({ kind: "held", lead });
-        setHeld((prev) => [{ lead, escalations: 0 }, ...prev]);
+        setHeld((prev) => [
+          { lead, escalations: 0, reason: "unrouted" as HoldReason },
+          ...prev,
+        ]);
         return;
       }
       assignTo(lead, plan, 0, slaMs);
@@ -328,13 +358,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (exhausted) {
-        setHeld((prev) => [{ lead, escalations: level + 1 }, ...prev]);
+        setHeld((prev) => [
+          { lead, escalations: level + 1, reason: "exhausted" as HoldReason },
+          ...prev,
+        ]);
         commitPhase({ kind: "held", lead });
         return;
       }
 
       const at = Date.now();
-      const willAccept = Math.random() < nextAgent.responsiveness;
+      const forced = forcedRef.current?.[nextLevel];
+      const willAccept =
+        forced === undefined
+          ? Math.random() < nextAgent.responsiveness
+          : forced === "accept";
       commitPhase({
         kind: "awaiting",
         state: {
@@ -368,9 +405,96 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     clearState();
   }, [commitPhase]);
 
+  /**
+   * Manual override from the hold queue. Re-runs routing against the current
+   * roster: a broker who has since freed up capacity, or a market that has
+   * since gained brokers, makes the lead routable again. If nobody is eligible
+   * the lead stays put — silently dropping it would be worse than holding it.
+   */
   const reassignHeld = useCallback(
-    (leadId: string) => setHeld((prev) => prev.filter((h) => h.lead.id !== leadId)),
-    [],
+    (leadId: string) => {
+      const entry = held.find((h) => h.lead.id === leadId);
+      if (!entry) return;
+
+      const target =
+        jurisdictions.find((j) => j.code === entry.lead.jurisdictionCode) ??
+        jurisdiction;
+      const plan = routeLead(entry.lead, target, agents);
+
+      setTrace(
+        plan.steps.map((step, index) => ({ ...step, batchIndex: index })),
+      );
+
+      if (plan.escalationOrder.length === 0) {
+        pushTrace([
+          {
+            id: `re-fail-${entry.lead.id}-${Date.now()}`,
+            at: Date.now(),
+            kind: "hold",
+            message: {
+              fr: "Toujours aucun courtier admissible — le lead reste en file",
+              en: "Still no eligible broker — the lead stays in the queue",
+            },
+          },
+        ]);
+        return;
+      }
+
+      setHeld((prev) => prev.filter((h) => h.lead.id !== leadId));
+      forcedRef.current = null;
+      assignTo(entry.lead, plan, 0, slaMs);
+    },
+    [agents, assignTo, held, jurisdiction, jurisdictions, pushTrace, slaMs],
+  );
+
+  /**
+   * Scenario setup. Each one arranges the board and stops; the visitor still
+   * presses the trigger, because a demo you only watch is a slower video.
+   */
+  const runScenario = useCallback(
+    (key: ScenarioKey) => {
+      if (key === "new-market") {
+        setView("jurisdictions");
+        setJurisdictionFormOpen(true);
+        return;
+      }
+
+      setView("simulator");
+      // Compressed SLA, or the visitor waits a full minute for the payoff.
+      setSpeed(10);
+
+      if (key === "no-response") {
+        forcedRef.current = FORCED_BY_SCENARIO["no-response"] ?? null;
+        setMunicipalityOverride(null); // busiest town — deepest bench
+        trigger(undefined, true);
+        return;
+      }
+
+      // at-capacity: fill the only broker covering some town, then send a lead
+      // there so the capacity cap is what stops it.
+      const solo = singleBrokerMunicipality(jurisdiction, agents);
+      if (!solo) return;
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.id === solo.agent.id ? { ...a, activeFiles: a.capacity } : a,
+        ),
+      );
+      setMunicipalityOverride(solo.town);
+      forcedRef.current = null;
+      // Routing must see the filled roster, so hand it the updated list.
+      const filled = agents.map((a) =>
+        a.id === solo.agent.id ? { ...a, activeFiles: a.capacity } : a,
+      );
+      const lead = makeLead(jurisdiction.code, solo.town, locale);
+      const plan = routeLead(lead, jurisdiction, filled);
+      setTrace(plan.steps.map((step, index) => ({ ...step, batchIndex: index })));
+      commitPhase({ kind: "held", lead });
+      setHeld((prev) => [
+        { lead, escalations: 0, reason: "unrouted" as HoldReason },
+        ...prev,
+      ]);
+    },
+    [agents, commitPhase, jurisdiction, locale, trigger],
   );
 
   const addJurisdiction = useCallback((input: NewJurisdictionInput) => {
@@ -466,7 +590,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     saveState({
-      version: 1,
+      version: 2,
       jurisdictions,
       agents,
       jurisdictionCode,
@@ -536,6 +660,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     decline,
     reset,
     reassignHeld,
+    view,
+    setView,
+    jurisdictionFormOpen,
+    setJurisdictionFormOpen,
+    runScenario,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

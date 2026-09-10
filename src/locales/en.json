@@ -51,7 +51,8 @@
     "title": "Hold queue",
     "empty": "Empty — every lead found an owner",
     "reason": "No response after {levels} escalations",
-    "reassign": "Reassign manually"
+    "reassign": "Reassign manually",
+    "unrouted": "No eligible broker"
   },
   "jur": {
     "title": "Jurisdiction manager",
@@ -105,5 +106,22 @@
     "language": "English",
     "showSource": "View source",
     "note": "Note"
+  },
+  "scenario": {
+    "title": "Guided scenarios",
+    "intro": "Each scenario sets the board. You still pull the trigger.",
+    "run": "Run",
+    "no-response": {
+      "label": "The broker doesn't respond",
+      "blurb": "The deadline expires and the lead escalates itself to the next broker."
+    },
+    "at-capacity": {
+      "label": "Broker at full capacity",
+      "blurb": "The only broker covering the area is full, so the lead cannot be routed."
+    },
+    "new-market": {
+      "label": "Open a new market",
+      "blurb": "Create Florida, then route a lead into it. With no deploy."
+    }
   }
 }

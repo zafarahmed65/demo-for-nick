@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { routeLead } from "./routing";
 import { QUEBEC } from "./jurisdictions";
+import { singleBrokerMunicipality } from "./scenarios";
+import { SEED_AGENTS } from "./seed";
 import type { Agent, Jurisdiction, Lead, Locale, TraceEntry } from "./types";
 
 /**
@@ -216,5 +218,29 @@ describe("decision trace", () => {
     expect(find(plan.steps, "Jurisdiction")?.message.en).toContain("1.5%");
     // US formatting, not the "450 000 $" Quebec form.
     expect(find(plan.steps, "Lead received")?.message.en).toContain("$450,000");
+  });
+});
+
+describe("scenario helpers", () => {
+  it("finds a town covered by exactly one licensed broker", () => {
+    const found = singleBrokerMunicipality(QUEBEC, SEED_AGENTS);
+    expect(found).not.toBeNull();
+    const covering = SEED_AGENTS.filter(
+      (a) =>
+        a.jurisdictions.includes("QC") &&
+        (a.coverage.length === 0 || a.coverage.includes(found!.town)),
+    );
+    // The scenario depends on this being exactly one — with two, filling one
+    // broker's cap would not make the town unroutable and the demo would lie.
+    expect(covering).toHaveLength(1);
+    expect(covering[0].id).toBe(found!.agent.id);
+  });
+
+  it("returns null when every town has depth", () => {
+    const everywhere = [
+      { ...SEED_AGENTS[0], coverage: [] },
+      { ...SEED_AGENTS[1], coverage: [] },
+    ];
+    expect(singleBrokerMunicipality(QUEBEC, everywhere)).toBeNull();
   });
 });

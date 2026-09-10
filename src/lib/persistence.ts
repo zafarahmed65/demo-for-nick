@@ -13,15 +13,24 @@ import type { Agent, Jurisdiction, Lead, Locale } from "./types";
  * error must degrade to seed state rather than take the page down.
  */
 
-const KEY = "lead-engine.v1";
+const KEY = "lead-engine.v2";
+
+/**
+ * Why a lead ended up in the hold queue. The two causes need different
+ * handling and different wording: "exhausted" means brokers were offered the
+ * lead and none responded; "unrouted" means nobody was ever eligible to be
+ * offered it, which is an operational problem, not a responsiveness one.
+ */
+export type HoldReason = "exhausted" | "unrouted";
 
 export interface HeldLead {
   lead: Lead;
   escalations: number;
+  reason: HoldReason;
 }
 
 export interface PersistedState {
-  version: 1;
+  version: 2;
   jurisdictions: Jurisdiction[];
   agents: Agent[];
   jurisdictionCode: string;
@@ -73,7 +82,7 @@ function isValid(value: unknown): value is PersistedState {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<PersistedState>;
   return (
-    candidate.version === 1 &&
+    candidate.version === 2 &&
     Array.isArray(candidate.jurisdictions) &&
     candidate.jurisdictions.length > 0 &&
     Array.isArray(candidate.agents) &&

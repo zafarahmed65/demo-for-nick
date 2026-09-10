@@ -51,7 +51,8 @@
     "title": "File d'attente",
     "empty": "Vide — tous les leads ont trouvé preneur",
     "reason": "Aucune réponse après {levels} escalades",
-    "reassign": "Réattribuer manuellement"
+    "reassign": "Réattribuer manuellement",
+    "unrouted": "Aucun courtier admissible"
   },
   "jur": {
     "title": "Gestionnaire de juridictions",
@@ -105,5 +106,22 @@
     "language": "Français",
     "showSource": "Voir le code source",
     "note": "Note"
+  },
+  "scenario": {
+    "title": "Scénarios guidés",
+    "intro": "Chaque scénario met la table. C'est vous qui appuyez sur la détente.",
+    "run": "Lancer",
+    "no-response": {
+      "label": "Le courtier ne répond pas",
+      "blurb": "L'échéance expire et le lead s'escalade de lui-même vers le courtier suivant."
+    },
+    "at-capacity": {
+      "label": "Courtier à pleine capacité",
+      "blurb": "Le seul courtier du secteur est plein : le lead ne peut plus être acheminé."
+    },
+    "new-market": {
+      "label": "Ouvrir un nouveau marché",
+      "blurb": "Créez la Floride, puis acheminez-y un lead. Sans déploiement."
+    }
   }
 }

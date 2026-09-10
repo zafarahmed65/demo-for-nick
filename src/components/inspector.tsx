@@ -94,7 +94,9 @@ export function Inspector() {
                 </div>
                 <div className="flex items-center gap-2 mt-1.5 pl-5">
                   <span className="text-2xs text-ink-500 flex-1 truncate">
-                    {t("hold.reason", { levels: entry.escalations })}
+                    {entry.reason === "unrouted"
+                      ? t("hold.unrouted")
+                      : t("hold.reason", { levels: entry.escalations })}
                   </span>
                   <Button
                     size="sm"

@@ -18,8 +18,9 @@ export function JurisdictionPanel() {
     addJurisdiction,
     locale,
     t,
+    jurisdictionFormOpen: adding,
+    setJurisdictionFormOpen: setAdding,
   } = useStore();
-  const [adding, setAdding] = useState(false);
 
   const savings =
     SAMPLE_PROPERTY * jurisdiction.marketCommissionRate -
@@ -33,7 +34,7 @@ export function JurisdictionPanel() {
           <Button
             size="sm"
             variant={adding ? "secondary" : "primary"}
-            onClick={() => setAdding((v) => !v)}
+            onClick={() => setAdding(!adding)}
           >
             <Plus size={12} />
             {adding ? t("jur.cancel") : t("jur.add")}
