@@ -24,6 +24,10 @@ const subscribeNothing = () => () => {};
 const onClient = () => true;
 const onServer = () => false;
 
+/* Who this demo was built for. Shown in the invitation, because a demo made
+   for one person should say so. Change this if the demo is reused. */
+const CLIENT_NAME = "Nick";
+
 const GAP = 14;
 const BUBBLE_W = 340;
 
@@ -176,13 +180,16 @@ export function Tour() {
   }, [active, beat]);
 
   useEffect(() => {
-    if (!active) return;
+    const asking = tourConsent === "unasked";
+    if (!active && !asking) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") endTour();
+      if (e.key !== "Escape") return;
+      if (asking) answerTour("declined");
+      else endTour();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, endTour]);
+  }, [active, answerTour, endTour, tourConsent]);
 
   const restart = useCallback(() => {
     setPaused(false);
@@ -191,25 +198,64 @@ export function Tour() {
 
   if (!mounted) return null;
 
-  /* --- The invitation ---------------------------------------------------- */
+  /* --- The invitation ----------------------------------------------------
+     Centred and on a backdrop, deliberately. This is the one thing the visitor
+     has to answer, and a card in the corner is the easiest thing on a screen to
+     ignore. Escape still dismisses it, but a backdrop click does not — both
+     answers are one click away, so asking for one is not unreasonable. */
   if (tourConsent === "unasked") {
     return createPortal(
-      <div className="fixed bottom-5 right-5 z-50 w-[340px] max-w-[calc(100vw-2.5rem)] animate-rise">
-        <div className="bg-white border border-[var(--hairline)] rounded-lg shadow-[0_10px_34px_rgba(9,9,11,0.14)] p-5">
-          <p className="text-title font-medium text-ink-900">
-            {t("tour.inviteTitle")}
-          </p>
-          <p className="text-small text-ink-500 mt-1.5 leading-relaxed">
-            {t("tour.inviteBody")}
-          </p>
-          <div className="flex items-center gap-2 mt-4">
-            <Button variant="primary" onClick={() => answerTour("accepted")}>
-              {t("tour.inviteYes")}
-              <ArrowRight size={13} />
-            </Button>
-            <Button variant="ghost" onClick={() => answerTour("declined")}>
-              {t("tour.inviteNo")}
-            </Button>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tour-invite-title"
+        className="fixed inset-0 z-50 grid place-items-center p-5"
+      >
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-ink-950/45 backdrop-blur-[2px] animate-backdrop-in"
+        />
+
+        <div className="relative w-full max-w-[460px] animate-modal-in">
+          <div className="bg-white rounded-lg shadow-[0_24px_64px_rgba(9,9,11,0.22)] p-8">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-md bg-pine-600 grid place-items-center shrink-0">
+                <span className="text-white text-micro font-bold tracking-tight">
+                  LE
+                </span>
+              </div>
+              <span className="text-small text-ink-400">{t("tour.builtFor")}</span>
+            </div>
+
+            <h2
+              id="tour-invite-title"
+              className="text-display text-ink-900 mt-5 tracking-[-0.02em]"
+            >
+              {t("tour.inviteTitle", { name: CLIENT_NAME })}
+            </h2>
+            <p className="text-body text-ink-600 mt-2.5 leading-relaxed">
+              {t("tour.inviteBody")}
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 mt-7">
+              <Button
+                variant="primary"
+                onClick={() => answerTour("accepted")}
+                className="h-11 px-5 text-body"
+              >
+                {t("tour.inviteYes")}
+                <ArrowRight size={15} />
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => answerTour("declined")}
+                className="h-11 px-4 text-body"
+              >
+                {t("tour.inviteNo")}
+              </Button>
+            </div>
+
+            <p className="text-small text-ink-400 mt-5">{t("tour.inviteMeta")}</p>
           </div>
         </div>
       </div>,

@@ -172,6 +172,24 @@ h1, h2, h3, h4 {
   animation: rise 200ms var(--ease-out-soft) both;
 }
 
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-backdrop-in {
+  animation: backdrop-in 220ms var(--ease-out-soft) both;
+}
+
+/* Scale from just under full size — a modal that grows from too small reads
+   as a novelty rather than as something arriving. */
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-modal-in {
+  animation: modal-in 260ms var(--ease-out-soft) both;
+}
+
 @keyframes pulse-ring {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.55; }

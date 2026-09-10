@@ -117,10 +117,10 @@
     "closed": "Transaction conclue"
   },
   "tour": {
-    "inviteTitle": "Première visite ?",
-    "inviteBody": "Laissez-moi vous faire visiter. Je conduis, vous regardez — et vous pouvez reprendre la main à tout moment.",
-    "inviteYes": "Oui, montrez-moi",
-    "inviteNo": "Non merci",
+    "inviteTitle": "Bonjour {name}.",
+    "inviteBody": "J'ai construit ceci à partir de votre appel d'offres — l'acheminement, l'escalade, les juridictions et l'attribution. Laissez-moi vous faire visiter : je conduis, vous regardez.",
+    "inviteYes": "Oui, faites-moi visiter",
+    "inviteNo": "Je regarde moi-même",
     "youWrote": "Vous avez écrit",
     "source": "votre appel d'offres",
     "step": "{n} / {total}",
@@ -198,6 +198,8 @@
     "done": {
       "title": "Voilà le moteur",
       "body": "Acheminement, escalade, plafonds, dérogation, marchés configurables et attribution — le tout dans le navigateur, sans base de données. Le code est dans votre dépôt."
-    }
+    },
+    "builtFor": "Conçu pour vous",
+    "inviteMeta": "Environ 90 secondes. Vous pouvez reprendre la main à tout moment."
   }
 }

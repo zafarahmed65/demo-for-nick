@@ -117,10 +117,10 @@
     "closed": "Closed"
   },
   "tour": {
-    "inviteTitle": "First time here?",
-    "inviteBody": "Let me show you around. I'll drive, you watch — and you can take over whenever you like.",
-    "inviteYes": "Yes, show me",
-    "inviteNo": "No thanks",
+    "inviteTitle": "Hello {name}.",
+    "inviteBody": "I built this from your brief — the routing, the escalation, the jurisdictions and the attribution. Let me show you around: I'll drive, you watch.",
+    "inviteYes": "Yes, show me around",
+    "inviteNo": "I'll look myself",
     "youWrote": "You wrote",
     "source": "your brief",
     "step": "{n} / {total}",
@@ -198,6 +198,8 @@
     "done": {
       "title": "That's the engine",
       "body": "Routing, escalation, capacity caps, override, configurable markets and attribution — all in the browser with no database. The code is in your repository."
-    }
+    },
+    "builtFor": "Built for you",
+    "inviteMeta": "About 90 seconds. You can take over whenever you like."
   }
 }
