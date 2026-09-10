@@ -25,14 +25,14 @@ export function Panel({
       className={`bg-white border border-[var(--hairline)] rounded-md ${className}`}
     >
       {title && (
-        <header className="flex items-center justify-between gap-3 px-4 h-11 border-b border-[var(--hairline)]">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 min-h-11 border-b border-[var(--hairline)]">
           <div className="flex items-baseline gap-2.5 min-w-0">
             <h2 className="text-2xs font-medium uppercase tracking-[0.07em] text-ink-500 whitespace-nowrap">
               {title}
             </h2>
             {meta && <span className="text-2xs text-ink-400 truncate">{meta}</span>}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
       <div className={bodyClassName}>{children}</div>

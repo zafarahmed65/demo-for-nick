@@ -1,36 +1,131 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lead Engine Sandbox
 
-## Getting Started
+A working demonstration of the three architectural questions in the brief: how a
+jurisdiction is modelled, how a lead reaches the right broker inside the SLA, and
+how an ad click stays attached to a closed sale.
 
-First, run the development server:
+It is a sandbox, not a product. There is no database, no auth and no marketing
+site — everything is seeded in memory and resets on reload. That is deliberate:
+the point is the engine, and the engine is what the brief asks about.
+
+---
+
+## What to look at, in order
+
+**1 — Watch a lead get routed and escalated.** Open the routing simulator, set
+demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with
+real wall-clock timestamps: licence → geography → capacity → language → fair
+rotation, then the countdown ring runs. The first broker in Laval is the least
+loaded but the slowest to respond, so the SLA usually expires and the lead
+escalates to the next broker on its own. Press **Refuser** three times instead
+and the lead exhausts its escalations and lands in the hold queue with an admin
+alert.
+
+**2 — Add a market without touching code.** Go to *Juridictions* →
+**Ajouter une juridiction**. The form is pre-filled with Florida at 1.5%. Submit
+it. The jurisdiction appears, the interface switches to English because Florida's
+default locale is English, currency becomes USD, a broker roster is created, and
+routing a Miami lead works immediately. Nothing was deployed.
+
+**3 — Switch Québec to Ontario.** Commission, workflow stages, terminology
+(`courtier` / `agent`, `promesse d'achat` / `agreement of purchase and sale`),
+legal disclosure and default language all change together, because they are all
+fields on one record.
+
+---
+
+## Question 2 — modelling jurisdictions so Ontario needs no code change
+
+A jurisdiction is a row, not a branch. [`src/lib/types.ts`](src/lib/types.ts)
+defines it and [`src/lib/jurisdictions.ts`](src/lib/jurisdictions.ts) holds the
+data — commission rate, market rate, SLA, escalation depth, default and required
+locales, terminology, legal disclosure, workflow stages with their required
+documents, and the municipality list.
+
+The rule the codebase follows: **no file outside `jurisdictions.ts` may branch on
+a jurisdiction code.** Grep for `"QC"` and you will find it in seed data and
+tests, never in logic. The routing engine reads `jurisdiction.slaSeconds` and
+`jurisdiction.escalationLevels`; the UI reads `jurisdiction.terminology`; the
+savings figure reads `jurisdiction.commissionRate`. Adding Ontario is inserting a
+record, which is exactly what the runtime form in
+[`jurisdiction-panel.tsx`](src/components/jurisdiction-panel.tsx) does in front of
+you.
+
+In production this table lives in Postgres — see [`schema.sql`](schema.sql) —
+with the workflow stages and their document requirements as child rows so you can
+rename and reorder them from the admin console.
+
+## Question 3 — reaching the right broker in 60 seconds, and what happens if nobody answers
+
+[`src/lib/routing.ts`](src/lib/routing.ts) is one pure function,
+`routeLead(lead, jurisdiction, agents)`. It applies four filters in a fixed order
+and explains each one as it goes:
+
+1. **Licence** — legal constraint, so it runs first
+2. **Geography** — municipality coverage, empty coverage means the whole market
+3. **Capacity** — a broker at their cap is protected from more work
+4. **Language** — the seller is served in the language they arrived in
+
+Survivors are ranked by last-assignment time, with load ratio breaking ties, so
+distribution stays fair and the least-busy eligible broker wins. The decision
+itself takes well under a millisecond; the 60 seconds is entirely the human
+window.
+
+**The function deliberately does not own the clock.** It returns the ordered list
+of brokers to try; the caller drives escalation. That keeps the decision logic
+pure and unit-testable without faking timers, and means the same function runs
+unchanged in a queue worker or an edge function.
+
+Escalation lives in [`src/lib/store.tsx`](src/lib/store.tsx), driven by one
+interval and a set of absolute deadlines. When the deadline passes the lead moves
+to the next broker; when a broker declines it moves immediately; when the
+escalation levels are exhausted it enters the hold queue and an admin is alerted.
+Nothing schedules its own `setTimeout`, so a stale timer from a previous
+assignment can never race a current one.
+
+In production the same shape holds with durable timers instead of an interval —
+the deadline is a row, a worker sweeps expired deadlines, and notifications go out
+over SMS, push and email in the broker's language.
+
+## Question 4 — ad click through to closed sale
+
+Attribution is a foreign key carried forward, not a report assembled afterwards.
+The click identifier (`gclid` / UTM set) is captured at landing, stored on the
+lead, and stays attached through routing, stage advancement and closing. Cost per
+closing is then a join, not an estimate.
+
+The *Attribution* view shows it over seed data. The insight it happens to
+surface is the point of building it: the Meta campaign costs roughly six times
+per closing what the referral programme does, despite a healthy-looking cost per
+lead — which is invisible if you only measure to the lead.
+
+[`schema.sql`](schema.sql) shows the durable version, with an
+`attribution_touches` table so multi-touch attribution stays possible later
+without a migration.
+
+---
+
+## What this is not
+
+No authentication, no persistence, no marketing site, no mobile app, no real
+notification delivery. Reloading resets everything. Broker responsiveness is
+simulated so the escalation path can be demonstrated on demand.
+
+## Running it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+No environment variables, no services to configure.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js 16 (App Router), TypeScript in strict mode, Tailwind 4, Lucide icons.
+No component library, no state library, no database.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Design tokens — palette, type scale, spacing, radii and motion — are defined once
+in [`src/app/globals.css`](src/app/globals.css); every component inherits them.
+Every user-visible string lives in [`src/locales`](src/locales), with French
+rendered by default rather than behind a toggle.

@@ -50,7 +50,9 @@ export function Shell() {
           </div>
         </div>
 
-        <nav className="p-2 border-b border-[var(--hairline)]">
+        {/* Horizontal on small screens so the rail does not push the console
+            a full screen down the page on a phone. */}
+        <nav className="p-2 border-b border-[var(--hairline)] flex gap-1 overflow-x-auto scroll-slim lg:block">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = view === item.key;
@@ -58,7 +60,7 @@ export function Shell() {
               <button
                 key={item.key}
                 onClick={() => setView(item.key)}
-                className={`w-full flex items-center gap-2.5 h-8 px-2 rounded-sm text-xs transition-colors duration-150 ${
+                className={`shrink-0 lg:w-full flex items-center gap-2.5 h-8 px-2.5 lg:px-2 rounded-sm text-xs whitespace-nowrap transition-colors duration-150 ${
                   active
                     ? "bg-pine-50 text-pine-800 font-medium"
                     : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
@@ -114,7 +116,7 @@ export function Shell() {
           />
         </div>
 
-        <dl className="p-3 space-y-1.5 border-b border-[var(--hairline)]">
+        <dl className="hidden lg:block p-3 space-y-1.5 border-b border-[var(--hairline)]">
           <RailStat
             label={t("rail.commission")}
             value={formatRate(jurisdiction.commissionRate, locale)}
@@ -127,8 +129,8 @@ export function Shell() {
           <RailStat label={t("rail.sla")} value={`${jurisdiction.slaSeconds}s`} />
         </dl>
 
-        <div className="p-3 mt-auto">
-          <p className="text-2xs text-ink-400 leading-relaxed">
+        <div className="px-3 pb-3 pt-0 lg:p-3 mt-auto">
+          <p className="hidden lg:block text-2xs text-ink-400 leading-relaxed">
             {jurisdiction.legalDisclosure[locale]}
           </p>
           <a

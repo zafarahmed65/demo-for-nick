@@ -54,11 +54,14 @@ export function JurisdictionPanel() {
           />
         )}
 
-        <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px bg-[var(--hairline)] border-t border-[var(--hairline)]">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 border-t border-[var(--hairline)]">
           {jurisdictions.map((j) => {
             const active = j.code === jurisdiction.code;
             return (
-              <li key={j.code} className="bg-white">
+              <li
+                key={j.code}
+                className="bg-white border-b border-r border-[var(--hairline)]"
+              >
                 <button
                   onClick={() => setJurisdictionCode(j.code)}
                   className={`w-full text-left px-4 py-3 transition-colors duration-150 ${
