@@ -22,7 +22,13 @@ const KEY = "lead-engine.v4";
  * lead and none responded; "unrouted" means nobody was ever eligible to be
  * offered it, which is an operational problem, not a responsiveness one.
  */
-export type HoldReason = "exhausted" | "unrouted";
+export type HoldReason =
+  /** Offered to every eligible broker; none of them answered in time. */
+  | "exhausted"
+  /** Offered to every eligible broker; they turned it down. */
+  | "declined"
+  /** Never offered to anyone — nobody was eligible to receive it. */
+  | "unrouted";
 
 export interface HeldLead {
   lead: Lead;

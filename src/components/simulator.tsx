@@ -195,9 +195,14 @@ function AssignmentCard() {
             {lead.id} · {money}
           </p>
           <p className="text-small text-danger-700 mt-2">
-            {held.find((h) => h.lead.id === lead.id)?.reason === "unrouted"
-              ? t("hold.unrouted")
-              : t("hold.reason", { levels: jurisdiction.escalationLevels })}
+            {(() => {
+              const why = held.find((h) => h.lead.id === lead.id)?.reason;
+              if (why === "unrouted") return t("hold.unrouted");
+              const levels = jurisdiction.escalationLevels + 1;
+              return why === "declined"
+                ? t("hold.declined", { levels })
+                : t("hold.reason", { levels });
+            })()}
           </p>
         </div>
       </div>

@@ -98,7 +98,9 @@ export function Inspector() {
                   <span className="text-micro text-ink-500 flex-1 truncate">
                     {entry.reason === "unrouted"
                       ? t("hold.unrouted")
-                      : t("hold.reason", { levels: entry.escalations })}
+                      : entry.reason === "declined"
+                        ? t("hold.declined", { levels: entry.escalations })
+                        : t("hold.reason", { levels: entry.escalations })}
                   </span>
                   <Button
                     size="sm"

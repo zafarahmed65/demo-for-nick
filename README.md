@@ -18,7 +18,12 @@ to closing, then a new market, then the money. It presses the buttons, moves
 between screens, highlights whoever just got the lead, and narrates. Pause hands
 the console straight back.
 
-**1 — Watch a lead get routed and escalated.** Open the routing simulator, set
+**1 — Press the trigger four times.** The first four leads are scripted so a
+demo runs the same way twice: the first is accepted, the second is declined and
+rerouted, the third goes unanswered and escalates on its own, and the fourth
+reaches nobody and lands in the hold queue. Press five onward is random again.
+
+**1b — Watch a lead get routed and escalated.** Open the routing simulator, set
 demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with
 real wall-clock timestamps: licence → geography → capacity → language → fair
 rotation, then the countdown ring runs. The first broker in Laval is the least

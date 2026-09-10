@@ -52,7 +52,8 @@
     "empty": "Empty — every lead found an owner",
     "reason": "No response after {levels} escalations",
     "reassign": "Reassign manually",
-    "unrouted": "No eligible broker"
+    "unrouted": "No eligible broker",
+    "declined": "Declined by all {levels} eligible brokers"
   },
   "jur": {
     "title": "Jurisdiction manager",

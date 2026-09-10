@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { campaignRows, campaignTotals, type ClosedLead } from "./attribution";
+import { DEMO_SEQUENCE } from "./scenarios";
 import type { Campaign, Lead } from "./types";
 
 const CAMPAIGN: Campaign = {
@@ -83,5 +84,38 @@ describe("cost per closing", () => {
     expect(totals.spend).toBe(5100);
     expect(totals.closings).toBe(10);
     expect(totals.costPerClosing).toBeCloseTo(510);
+  });
+});
+
+describe("demo sequence", () => {
+  it("tells the four stories in the order a demo needs them", () => {
+    // Order is load-bearing: a recording walks presses 1-4 in sequence, and
+    // the narration for each is written against these outcomes.
+    expect(DEMO_SEQUENCE).toEqual([
+      ["accept"],
+      ["decline", "accept"],
+      ["ignore", "accept"],
+      ["ignore", "ignore", "ignore"],
+    ]);
+  });
+
+  it("hands back to chance after the fourth lead", () => {
+    // A demo that loops through four fixed outcomes forever stops looking
+    // like an engine.
+    expect(DEMO_SEQUENCE[4]).toBeUndefined();
+    expect(DEMO_SEQUENCE).toHaveLength(4);
+  });
+
+  it("never lets the first lead be a disappointment", () => {
+    expect(DEMO_SEQUENCE[0]?.[0]).toBe("accept");
+  });
+
+  it("reaches the hold queue only on the last one", () => {
+    // A script with no "accept" in it means every eligible broker passes and
+    // the lead ends up queued. Exactly one of the four should do that.
+    const reachesQueue = (s: readonly string[] | null) =>
+      s !== null && s.every((r) => r !== "accept");
+    expect(DEMO_SEQUENCE.filter(reachesQueue)).toHaveLength(1);
+    expect(reachesQueue(DEMO_SEQUENCE[3])).toBe(true);
   });
 });

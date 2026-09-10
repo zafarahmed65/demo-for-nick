@@ -52,7 +52,8 @@
     "empty": "Vide — tous les leads ont trouvé preneur",
     "reason": "Aucune réponse après {levels} escalades",
     "reassign": "Réattribuer manuellement",
-    "unrouted": "Aucun courtier admissible"
+    "unrouted": "Aucun courtier admissible",
+    "declined": "Refusé par les {levels} courtiers admissibles"
   },
   "jur": {
     "title": "Gestionnaire de juridictions",

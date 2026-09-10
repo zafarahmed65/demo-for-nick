@@ -21,7 +21,7 @@ import {
   type HoldReason,
 } from "./persistence";
 import type { ClosedLead } from "./attribution";
-import { singleBrokerMunicipality } from "./scenarios";
+import { DEMO_SEQUENCE, singleBrokerMunicipality } from "./scenarios";
 import type { TourFacts } from "./tour";
 import type {
   Agent,
@@ -52,6 +52,9 @@ interface Awaiting {
   deadline: number;
   /** Absolute time this broker will accept, or null if they will not. */
   autoAcceptAt: number | null;
+  /** Absolute time this broker will decline. Lands well before the deadline,
+      so a decline reads as a decision rather than a timeout. */
+  autoDeclineAt: number | null;
 }
 
 type Phase =
@@ -116,7 +119,7 @@ interface StoreValue {
    * Queue broker responses for the next lead, so a walkthrough step can promise
    * an outcome and deliver it. The visitor still presses the button themselves.
    */
-  armScript: (script: ("accept" | "ignore")[]) => void;
+  armScript: (script: ("accept" | "ignore" | "decline")[]) => void;
   /** Window granted to a broker after an escalation; null restores inheritance. */
   armEscalationWindow: (ms: number | null) => void;
 
@@ -211,13 +214,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
      governs the lead in flight and must survive its escalations. One ref would
      either be cleared before the escalation could read it, or stay in force
      for every subsequent lead. */
-  const armedScriptRef = useRef<("accept" | "ignore")[] | null>(null);
-  const activeScriptRef = useRef<("accept" | "ignore")[] | null>(null);
+  const armedScriptRef = useRef<("accept" | "ignore" | "decline")[] | null>(null);
+  const activeScriptRef = useRef<("accept" | "ignore" | "decline")[] | null>(null);
   /* Window to give a broker *after* an escalation. Normally an escalation
      inherits the window of the assignment it replaced, but the walkthrough
      needs a short first window (so the timeout is quick to watch) followed by
      a patient one (so it can narrate before accepting). */
   const escalationWindowRef = useRef<number | null>(null);
+  /* Which of the scripted demo leads comes next. Reset returns it to zero, so
+     a second run of a demo tells the same story as the first. */
+  const demoLeadRef = useRef(0);
   const [tourConsent, setTourConsent] =
     useState<"unasked" | "accepted" | "declined">("unasked");
   const [tourStep, setTourStepRaw] = useState(0);
@@ -296,6 +302,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           autoAcceptAt: willAccept
             ? at + windowMs * (0.35 + Math.random() * 0.45)
             : null,
+          // A quarter of the window: quick enough to read as a refusal, not
+          // as the countdown quietly running out.
+          autoDeclineAt: scripted === "decline" ? at + windowMs * 0.25 : null,
         },
       });
     },
@@ -304,9 +313,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const trigger = useCallback(
     (override?: string, windowMsOverride?: number) => {
-      // Consume whatever the walkthrough queued; later leads are random again.
-      activeScriptRef.current = armedScriptRef.current;
+      /* Precedence: a script armed by the guided tour wins, then the demo
+         sequence, then chance. */
+      const queued = armedScriptRef.current;
       armedScriptRef.current = null;
+      activeScriptRef.current =
+        queued ?? DEMO_SEQUENCE[demoLeadRef.current] ?? null;
+      demoLeadRef.current += 1;
       const town = override ?? municipality;
       const lead = makeLead(jurisdiction.code, town, locale);
       const plan = routeLead(lead, jurisdiction, agents);
@@ -330,7 +343,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [agents, assignTo, commitPhase, jurisdiction, locale, municipality, slaMs],
   );
 
-  const armScript = useCallback((script: ("accept" | "ignore")[]) => {
+  const armScript = useCallback((script: ("accept" | "ignore" | "decline")[]) => {
     armedScriptRef.current = script;
   }, []);
 
@@ -556,7 +569,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       if (exhausted) {
         setHeld((prev) => [
-          { lead, escalations: level + 1, reason: "exhausted" as HoldReason },
+          {
+            lead,
+            escalations: level + 1,
+            // Declined and ignored are different facts, and the queue said
+            // "no response" for both. Someone who declined did respond.
+            reason: reason === "decline" ? "declined" : "exhausted",
+          },
           ...prev,
         ]);
         commitPhase({ kind: "held", lead });
@@ -581,6 +600,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           autoAcceptAt: willAccept
             ? at + windowMs * (0.3 + Math.random() * 0.4)
             : null,
+          autoDeclineAt: scripted === "decline" ? at + windowMs * 0.25 : null,
         },
       });
     },
@@ -599,6 +619,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     armedScriptRef.current = null;
     activeScriptRef.current = null;
     escalationWindowRef.current = null;
+    demoLeadRef.current = 0;
     setHasReassigned(false);
     setHasEscalated(false);
     setMunicipalityOverride(null);
@@ -874,8 +895,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setNow(tick);
       const current = phaseRef.current;
       if (current.kind !== "awaiting") return;
-      const { autoAcceptAt, deadline } = current.state;
-      if (autoAcceptAt !== null && tick >= autoAcceptAt) {
+      const { autoAcceptAt, autoDeclineAt, deadline } = current.state;
+      if (autoDeclineAt !== null && tick >= autoDeclineAt) {
+        advance("decline");
+      } else if (autoAcceptAt !== null && tick >= autoAcceptAt) {
         accept();
       } else if (tick >= deadline) {
         advance("timeout");
