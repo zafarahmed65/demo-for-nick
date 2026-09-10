@@ -12,33 +12,33 @@ the point is the engine, and the engine is what the brief asks about.
 
 ## What to look at, in order
 
-**0 — Or accept the guided tour.** On a first visit it offers to show you
-around. Say yes and it drives: seventeen beats following one lead from arrival
-to closing, then a new market, then the money. It presses the buttons, moves
-between screens, highlights whoever just got the lead, and narrates. Pause hands
-the console straight back.
+**1 — Take the guided tour.** On a first visit it offers to show you around.
+Say yes and it drives: it presses the buttons, moves between screens, highlights
+whoever just got the lead, and narrates what happened — one lead from arrival to
+closing, then a new market, then the money. Pause hands the console straight
+back at any point.
 
-**1 — Press the trigger four times.** The first four leads are scripted so a
-demo runs the same way twice: the first is accepted, the second is declined and
-rerouted, the third goes unanswered and escalates on its own, and the fourth
-reaches nobody and lands in the hold queue. Press five onward is random again.
+**2 — Or press the trigger four times yourself.** The first four leads are
+scripted, so a demo runs the same way twice:
 
-**1b — Watch a lead get routed and escalated.** Open the routing simulator, set
-demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with
-real wall-clock timestamps: licence → geography → capacity → language → fair
-rotation, then the countdown ring runs. The first broker in Laval is the least
-loaded but the slowest to respond, so the SLA usually expires and the lead
-escalates to the next broker on its own. Press **Refuser** three times instead
-and the lead exhausts its escalations and lands in the hold queue with an admin
-alert.
+1. Routed and accepted inside the window.
+2. The first broker declines; it reroutes immediately and the second takes it.
+3. Nobody answers; the countdown expires and it escalates on its own.
+4. Nobody takes it at all; it lands in the hold queue for an administrator, who
+   can override the capacity cap and put it back into routing.
 
-**2 — Add a market without touching code.** Go to *Juridictions* →
+Press five onward is random again. Either way, watch the decision log: it prints
+with real wall-clock timestamps, and shows licence → geography → capacity →
+language → fair rotation. The capacity line drops a broker already at twelve
+files out of twelve.
+
+**3 — Add a market without touching code.** Go to *Juridictions* →
 **Ajouter une juridiction**. The form is pre-filled with Florida at 1.5%. Submit
 it. The jurisdiction appears, the interface switches to English because Florida's
 default locale is English, currency becomes USD, a broker roster is created, and
 routing a Miami lead works immediately. Nothing was deployed.
 
-**3 — Switch Québec to Ontario.** Commission, workflow stages, terminology
+**4 — Switch Québec to Ontario.** Commission, workflow stages, terminology
 (`courtier` / `agent`, `promesse d'achat` / `agreement of purchase and sale`),
 legal disclosure and default language all change together, because they are all
 fields on one record.
