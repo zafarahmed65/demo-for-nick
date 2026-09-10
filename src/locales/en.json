@@ -117,40 +117,86 @@
   },
   "tour": {
     "inviteTitle": "First time here?",
-    "inviteBody": "I can walk you through what you asked for — six steps, you click, I explain.",
+    "inviteBody": "Let me show you around. I'll drive, you watch — and you can take over whenever you like.",
     "inviteYes": "Yes, show me",
     "inviteNo": "No thanks",
     "youWrote": "You wrote",
     "source": "your brief",
     "step": "{n} / {total}",
-    "next": "Next",
+    "pause": "Pause",
+    "resume": "Resume",
+    "skip": "Exit",
     "end": "Finish",
-    "skip": "Leave the guide",
-    "reopen": "Guide",
-    "goThere": "Go to that screen",
-    "route": {
-      "title": "Trigger an inbound lead",
-      "body": "Read the log underneath. The fifth line excludes a broker already at capacity. And note this page loaded in French before you touched anything."
+    "again": "Watch again",
+    "reopen": "Guided tour",
+    "pausedNote": "Paused — the console is yours. Resume whenever you want.",
+    "market": {
+      "title": "Quebec, in French by default",
+      "body": "This page loaded in French before any interaction. Commission, stages, terminology and legal disclosures all come from this market's record."
     },
-    "no-response": {
-      "title": "Touch nothing",
-      "body": "This broker will not respond. When the deadline passes the lead escalates itself to the next one, with nobody intervening."
+    "route": {
+      "title": "A lead arrives",
+      "body": "I'm triggering a lead in Laval. Watch the decision log underneath."
+    },
+    "decision-log": {
+      "title": "The decision, line by line",
+      "body": "Licence, geography, capacity, language — then fair rotation. The capacity line drops Isabelle Bouchard, already at 12/12. Decided in under a millisecond."
+    },
+    "assigned": {
+      "title": "Marie-Claude has it",
+      "body": "Fair rotation picked the least recently assigned broker. SMS and push go out immediately."
+    },
+    "countdown": {
+      "title": "She has 60 seconds",
+      "body": "The window is compressed for the demo. She will not respond — watch what happens when it expires."
+    },
+    "escalated": {
+      "title": "It escalated on its own",
+      "body": "With no response the lead reassigned itself to Simon Gagnon. No human involved, no lead rotting in an inbox."
     },
     "accept": {
-      "title": "The second broker got it",
-      "body": "Accept on their behalf. Their active file count rises immediately, which changes how the next lead routes."
+      "title": "Simon accepts",
+      "body": "I'm accepting on his behalf. In the real product this is a button in his portal, or an SMS reply."
+    },
+    "load": {
+      "title": "His load just changed",
+      "body": "One more active file against his cap. The next lead routes differently — capacity is not decoration."
     },
     "close": {
-      "title": "Take the file through to closing",
-      "body": "The stages come from this market's configuration. Quebec closes at a notary; Ontario waives conditions."
+      "title": "From file to closing",
+      "body": "The stages come from the market's configuration. Quebec closes at the notary; Ontario waives conditions."
     },
-    "new-market": {
-      "title": "Open a market that does not exist",
-      "body": "The form is pre-filled with Florida. Create it, then route a lead into it. No code, no deploy."
+    "unroutable": {
+      "title": "And when nobody is available?",
+      "body": "I filled the only broker covering Gatineau, then sent a lead there. No eligible broker left."
+    },
+    "hold-explained": {
+      "title": "The lead is not lost",
+      "body": "It drops into the hold queue and an administrator is alerted. The cap protected the broker instead of quietly burying them."
+    },
+    "override": {
+      "title": "Manual override",
+      "body": "An administrator can push past the cap. Licence and territory stay non-negotiable — a full desk is a human judgement call."
+    },
+    "jurisdictions": {
+      "title": "Opening a new market",
+      "body": "This is the jurisdiction manager. I'm opening the form — pre-filled with Florida."
+    },
+    "create-market": {
+      "title": "Creating Florida",
+      "body": "Currency, commission, language, stages — all from the form. No code, no deploy."
+    },
+    "market-created": {
+      "title": "The market exists",
+      "body": "The interface switched to English and the currency to US dollars. The routing engine is already using it."
     },
     "attribution": {
-      "title": "Cost per closing just moved",
-      "body": "The lead you closed carried its campaign the whole way. The calculation is real; the ad-spend figures are sample data — connecting Google Ads and Meta is configuration, not a rebuild."
+      "title": "Cost per closing moved",
+      "body": "The lead you watched close carried its campaign the whole way. The calculation is real; the ad-spend figures are sample data — wiring them to Google Ads and Meta is configuration, not a rebuild."
+    },
+    "done": {
+      "title": "That's the engine",
+      "body": "Routing, escalation, capacity caps, override, configurable markets and attribution — all in the browser with no database. The code is in your repository."
     }
   }
 }

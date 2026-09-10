@@ -31,6 +31,7 @@ export function Inspector() {
             return (
               <li
                 key={agent.id}
+                data-tour={active ? "roster-active" : undefined}
                 className={`px-5 py-3.5 transition-colors duration-150 ${
                   active ? "bg-pine-50" : ""
                 }`}
@@ -70,6 +71,7 @@ export function Inspector() {
       </Panel>
 
       <Panel
+        dataTour="hold-queue"
         title={t("hold.title")}
         meta={held.length > 0 ? String(held.length) : undefined}
         className="shrink-0"
@@ -102,6 +104,7 @@ export function Inspector() {
                     size="sm"
                     variant="secondary"
                     onClick={() => reassignHeld(entry.lead.id)}
+                    dataTour="reassign"
                   >
                     {t("hold.reassign")}
                   </Button>

@@ -1,23 +1,16 @@
 import type { View } from "./store";
+import type { NewJurisdictionInput } from "./store";
 
 /**
- * The anchored walkthrough.
+ * The guided walkthrough, as a script of beats.
  *
- * Each step points at a real control and waits. The visitor presses every
- * button themselves; the tour only points, explains and confirms — a demo you
- * merely watch is a slower video.
+ * The visitor has consented to being shown around, so the tour drives: it
+ * presses the buttons, moves between screens, and narrates what just happened.
+ * They watch, and can take over at any point with Pause.
  *
- * Two rules shape the data below:
- *
- * 1. Most interesting controls are conditionally rendered — Accept exists only
- *    while a lead is awaiting, the stage buttons only once it is accepted. So a
- *    step declares the `view` it lives in and a `needs` predicate. When its
- *    anchor is not on screen the bubble points at `fallbackAnchor` instead,
- *    which is whatever makes the real anchor appear.
- *
- * 2. Completion is observed, never self-reported. `isDone` reads facts the
- *    store already holds, so a step cannot advance because someone clicked
- *    Next — only because the thing actually happened.
+ * Every beat ends either when something observably true happens (`until`) or
+ * after a fixed time (`hold`). When a beat has both, `hold` is a ceiling — so a
+ * beat can never stall the tour if its condition somehow does not arrive.
  */
 
 export interface TourFacts {
@@ -26,88 +19,166 @@ export interface TourFacts {
   isAwaiting: boolean;
   isAccepted: boolean;
   closingsCount: number;
+  heldCount: number;
   hasRuntimeMarket: boolean;
   view: View;
 }
 
-export interface TourStep {
-  key: string;
-  /** data-tour value of the element to point at. */
-  anchor: string;
-  /** Where the anchor lives. */
-  view: View;
-  /** Shown instead when the real anchor is not rendered yet. */
-  fallbackAnchor?: string;
-  /** His brief, verbatim. Never translated — it is a quotation. */
-  quote?: string;
-  /** True once the visitor has genuinely done it. */
-  isDone: (f: TourFacts) => boolean;
-  /** Steps the walkthrough can set up itself, because waiting is the point. */
-  scripted?: boolean;
+/** What a beat is allowed to do to the console. */
+export interface TourActions {
+  reset: () => void;
+  setSpeed: (n: number) => void;
+  setView: (v: View) => void;
+  armScript: (s: ("accept" | "ignore")[]) => void;
+  armEscalationWindow: (ms: number | null) => void;
+  trigger: () => void;
+  accept: () => void;
+  closeLead: () => void;
+  triggerUnroutable: () => void;
+  reassignFirstHeld: () => void;
+  openJurisdictionForm: (open: boolean) => void;
+  createFlorida: () => void;
 }
 
-export const TOUR_STEPS: TourStep[] = [
+export interface Beat {
+  key: string;
+  /** data-tour name to ring and attach the caption to. */
+  anchor?: string;
+  /** Screen this beat happens on; the tour navigates there itself. */
+  view?: View;
+  /** Performed once, this many ms after the beat opens. */
+  act?: (a: TourActions) => void;
+  actAfter?: number;
+  /** Advance as soon as this is true. */
+  until?: (f: TourFacts) => boolean;
+  /** Advance after this long — and, alongside `until`, a stall ceiling. */
+  hold?: number;
+}
+
+export const FLORIDA: NewJurisdictionInput = {
+  code: "FL",
+  name: "Florida",
+  country: "US",
+  currencyCode: "USD",
+  commissionRate: 0.015,
+  marketCommissionRate: 0.06,
+  slaSeconds: 60,
+  defaultLocale: "en",
+  preset: "us-standard",
+  municipalities: ["Miami", "Orlando", "Tampa", "Jacksonville"],
+};
+
+/** Nobody answers on their own: the tour decides when the lead is accepted. */
+const SILENT: ("accept" | "ignore")[] = ["ignore", "ignore", "ignore"];
+
+export const BEATS: Beat[] = [
+  {
+    key: "market",
+    view: "simulator",
+    anchor: "market-rail",
+    act: (a) => {
+      a.reset();
+      a.setSpeed(10);
+    },
+    hold: 4500,
+  },
   {
     key: "route",
     anchor: "trigger",
-    view: "simulator",
-    quote:
-      "How would you architect lead routing so a lead reaches the right agent within 60 seconds…",
-    isDone: (f) => f.routedCount > 0,
-    scripted: true,
+    act: (a) => {
+      a.armScript(SILENT);
+      // Short first window so the timeout is quick to watch; a patient one
+      // afterwards so the tour can narrate the escalation and then accept,
+      // instead of the lead falling through every broker into the queue.
+      a.armEscalationWindow(60_000);
+      a.trigger();
+    },
+    actAfter: 1600,
+    until: (f) => f.routedCount > 0,
+    hold: 6000,
   },
+  { key: "decision-log", anchor: "trace", hold: 7000 },
+  { key: "assigned", anchor: "roster-active", hold: 4500 },
   {
-    key: "no-response",
+    key: "countdown",
     anchor: "countdown",
-    view: "simulator",
-    fallbackAnchor: "trigger",
-    quote: "…and what happens when they don't respond?",
-    isDone: (f) => f.hasEscalated,
+    until: (f) => f.hasEscalated,
+    hold: 12000,
   },
+  { key: "escalated", anchor: "roster-active", hold: 5000 },
   {
     key: "accept",
     anchor: "accept",
-    view: "simulator",
-    fallbackAnchor: "trigger",
-    isDone: (f) => f.isAccepted || f.closingsCount > 0,
+    act: (a) => a.accept(),
+    actAfter: 2600,
+    until: (f) => f.isAccepted,
+    hold: 7000,
   },
+  { key: "load", anchor: "roster-active", hold: 4500 },
   {
     key: "close",
     anchor: "close-lead",
-    view: "simulator",
-    fallbackAnchor: "trigger",
-    isDone: (f) => f.closingsCount > 0,
+    act: (a) => a.closeLead(),
+    actAfter: 3000,
+    until: (f) => f.closingsCount > 0,
+    hold: 7000,
   },
   {
-    key: "new-market",
-    anchor: "add-jurisdiction",
-    view: "jurisdictions",
-    fallbackAnchor: "nav-jurisdictions",
-    quote:
-      "How would you model jurisdictions so that adding Ontario after we've launched in Quebec requires no code changes?",
-    isDone: (f) => f.hasRuntimeMarket,
+    key: "unroutable",
+    anchor: "hold-queue",
+    act: (a) => {
+      a.armEscalationWindow(null);
+      a.triggerUnroutable();
+    },
+    actAfter: 1200,
+    until: (f) => f.heldCount > 0,
+    hold: 6000,
   },
+  { key: "hold-explained", anchor: "hold-queue", hold: 5500 },
+  {
+    key: "override",
+    anchor: "reassign",
+    act: (a) => a.reassignFirstHeld(),
+    actAfter: 3200,
+    until: (f) => f.heldCount === 0,
+    hold: 7000,
+  },
+  {
+    key: "jurisdictions",
+    view: "jurisdictions",
+    anchor: "add-jurisdiction",
+    act: (a) => a.openJurisdictionForm(true),
+    actAfter: 2200,
+    hold: 5000,
+  },
+  {
+    key: "create-market",
+    view: "jurisdictions",
+    anchor: "add-jurisdiction",
+    act: (a) => a.createFlorida(),
+    actAfter: 1800,
+    until: (f) => f.hasRuntimeMarket,
+    hold: 6000,
+  },
+  { key: "market-created", view: "jurisdictions", anchor: "market-rail", hold: 5000 },
   {
     key: "attribution",
-    anchor: "nav-attribution",
     view: "attribution",
-    quote:
-      "How would you track a lead from ad click through to closed sale so I can calculate my true cost per closing?",
-    // Final step: reaching the view is the whole of it.
-    isDone: (f) => f.view === "attribution",
+    anchor: "cost-per-closing",
+    hold: 8000,
   },
+  { key: "done", hold: 0 },
 ];
 
-/**
- * Broker responses for the walkthrough's lead.
- *
- * Nobody auto-accepts. Step 2 needs the first broker to stay silent so the
- * escalation is guaranteed, and step 3 needs the lead still waiting when the
- * visitor gets there — an auto-accept at level 1 would take the button away
- * before they could press it. Accepting is their job, not the simulation's.
- */
-export const ROUTE_SCRIPT: ("accept" | "ignore")[] = [
-  "ignore",
-  "ignore",
-  "ignore",
-];
+/** His brief, verbatim, shown on the beats that answer a specific question. */
+export const BEAT_QUOTES: Record<string, string> = {
+  route:
+    "How would you architect lead routing so a lead reaches the right agent within 60 seconds…",
+  countdown: "…and what happens when they don't respond?",
+  unroutable:
+    "Automatic routing by jurisdiction, geography, capacity and round-robin, with full manual override.",
+  jurisdictions:
+    "How would you model jurisdictions so that adding Ontario after we've launched in Quebec requires no code changes?",
+  attribution:
+    "How would you track a lead from ad click through to closed sale so I can calculate my true cost per closing?",
+};

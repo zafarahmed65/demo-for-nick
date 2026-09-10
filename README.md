@@ -12,11 +12,11 @@ the point is the engine, and the engine is what the brief asks about.
 
 ## What to look at, in order
 
-**0 — Or accept the walkthrough.** On a first visit it offers to guide you. Say
-yes and it points at one real control at a time, quotes the requirement from the
-brief that the control answers, and waits. You press every button yourself. A
-step is marked complete only when the event actually happens — it observes,
-rather than taking your word for it.
+**0 — Or accept the guided tour.** On a first visit it offers to show you
+around. Say yes and it drives: seventeen beats following one lead from arrival
+to closing, then a new market, then the money. It presses the buttons, moves
+between screens, highlights whoever just got the lead, and narrates. Pause hands
+the console straight back.
 
 **1 — Watch a lead get routed and escalated.** Open the routing simulator, set
 demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with

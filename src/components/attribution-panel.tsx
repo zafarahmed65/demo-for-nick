@@ -42,7 +42,7 @@ export function AttributionPanel() {
                 <Th>{t("attr.leads")}</Th>
                 <Th>{t("attr.closings")}</Th>
                 <Th>{t("attr.cpl")}</Th>
-                <Th emphasis>{t("attr.cpa")}</Th>
+                <Th emphasis dataTour="cost-per-closing">{t("attr.cpa")}</Th>
               </tr>
             </thead>
             <tbody>
@@ -236,13 +236,16 @@ function Th({
   children,
   align = "right",
   emphasis,
+  dataTour,
 }: {
   children: React.ReactNode;
   align?: "left" | "right";
   emphasis?: boolean;
+  dataTour?: string;
 }) {
   return (
     <th
+      data-tour={dataTour}
       className={`px-5 py-3 text-small font-medium whitespace-nowrap ${
         align === "left" ? "text-left" : "text-right"
       } ${emphasis ? "text-pine-700" : "text-ink-500"}`}

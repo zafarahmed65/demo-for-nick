@@ -12,6 +12,7 @@ export function Panel({
   children,
   className = "",
   bodyClassName = "",
+  dataTour,
 }: {
   title?: string;
   meta?: ReactNode;
@@ -19,9 +20,12 @@ export function Panel({
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** Anchor name for the walkthrough to point at. */
+  dataTour?: string;
 }) {
   return (
     <section
+      data-tour={dataTour}
       className={`bg-white border border-[var(--hairline)] rounded-lg shadow-[var(--lift)] ${className}`}
     >
       {title && (

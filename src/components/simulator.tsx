@@ -91,6 +91,7 @@ function TraceLog() {
 
   return (
     <Panel
+      dataTour="trace"
       title={t("trace.title")}
       meta={t("trace.subtitle")}
       className="xl:flex-1 xl:min-h-0 flex flex-col"

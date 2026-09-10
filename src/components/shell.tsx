@@ -74,7 +74,7 @@ export function Shell() {
           })}
         </nav>
 
-        <div className="px-4 pt-4 pb-3">
+        <div data-tour="market-rail" className="px-4 pt-4 pb-3">
           <p className="text-small text-ink-500 mb-2">{t("rail.jurisdiction")}</p>
           <div className="space-y-0.5">
             {jurisdictions.map((j) => {

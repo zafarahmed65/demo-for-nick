@@ -21,7 +21,8 @@ import {
   type HoldReason,
 } from "./persistence";
 import type { ClosedLead } from "./attribution";
-import { TOUR_STEPS, type TourFacts } from "./tour";
+import { singleBrokerMunicipality } from "./scenarios";
+import type { TourFacts } from "./tour";
 import type {
   Agent,
   Jurisdiction,
@@ -116,13 +117,21 @@ interface StoreValue {
    * an outcome and deliver it. The visitor still presses the button themselves.
    */
   armScript: (script: ("accept" | "ignore")[]) => void;
+  /** Window granted to a broker after an escalation; null restores inheritance. */
+  armEscalationWindow: (ms: number | null) => void;
+
+  /**
+   * Fill the only broker covering some town and send a lead there in one go,
+   * so it is genuinely unroutable and lands in the hold queue. Atomic on
+   * purpose: setting the roster and then calling trigger() would route against
+   * the pre-saturation roster, because React has not applied the update yet.
+   */
+  triggerUnroutable: () => void;
 
   /* --- Anchored walkthrough --- */
   tourConsent: "unasked" | "accepted" | "declined";
   tourStep: number;
   tourFacts: TourFacts;
-  /** Whether each step has genuinely been completed. */
-  tourDone: boolean[];
   answerTour: (answer: "accepted" | "declined") => void;
   setTourStep: (index: number) => void;
   endTour: () => void;
@@ -204,6 +213,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
      for every subsequent lead. */
   const armedScriptRef = useRef<("accept" | "ignore")[] | null>(null);
   const activeScriptRef = useRef<("accept" | "ignore")[] | null>(null);
+  /* Window to give a broker *after* an escalation. Normally an escalation
+     inherits the window of the assignment it replaced, but the walkthrough
+     needs a short first window (so the timeout is quick to watch) followed by
+     a patient one (so it can narrate before accepting). */
+  const escalationWindowRef = useRef<number | null>(null);
   const [tourConsent, setTourConsent] =
     useState<"unasked" | "accepted" | "declined">("unasked");
   const [tourStep, setTourStepRaw] = useState(0);
@@ -319,6 +333,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const armScript = useCallback((script: ("accept" | "ignore")[]) => {
     armedScriptRef.current = script;
   }, []);
+
+  const armEscalationWindow = useCallback((ms: number | null) => {
+    escalationWindowRef.current = ms;
+  }, []);
+
+  const triggerUnroutable = useCallback(() => {
+    const solo = singleBrokerMunicipality(jurisdiction, agents);
+    if (!solo) return;
+
+    // A new lead consumes whatever was armed — and, crucially, drops any script
+    // still in force from the previous lead. Leaving it would silence the next
+    // broker too, which is how an overridden assignment bounced straight back
+    // into the hold queue.
+    activeScriptRef.current = armedScriptRef.current;
+    armedScriptRef.current = null;
+
+    const saturated = agents.map((a) =>
+      a.id === solo.agent.id ? { ...a, activeFiles: a.capacity } : a,
+    );
+    setAgents(saturated);
+    setMunicipalityOverride(solo.town);
+
+    // Route against the saturated roster directly rather than waiting for the
+    // state update to land.
+    const lead = makeLead(jurisdiction.code, solo.town, locale);
+    const plan = routeLead(lead, jurisdiction, saturated);
+    setRoutedLeads((prev) => [...prev, lead]);
+    setTrace(plan.steps.map((entry, index) => ({ ...entry, batchIndex: index })));
+    commitPhase({ kind: "held", lead });
+    setHeld((prev) => [
+      { lead, escalations: 0, reason: "unrouted" as HoldReason },
+      ...prev,
+    ]);
+  }, [agents, commitPhase, jurisdiction, locale]);
 
   const accept = useCallback(() => {
     const current = phaseRef.current;
@@ -448,9 +496,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (current.kind !== "awaiting") return;
 
       const { lead, plan, level, agentId, deadline, assignedAt } = current.state;
-      // Preserve whatever window this lead was assigned under, so a scenario's
-      // compressed countdown stays compressed through every escalation.
-      const windowMs = deadline - assignedAt;
+      // An escalation inherits the window it replaced, unless one has been
+      // armed explicitly.
+      const windowMs = escalationWindowRef.current ?? deadline - assignedAt;
       const agent = agents.find((a) => a.id === agentId);
       const nextLevel = level + 1;
       const nextAgent = plan.escalationOrder[nextLevel];
@@ -550,6 +598,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setClosings([]);
     armedScriptRef.current = null;
     activeScriptRef.current = null;
+    escalationWindowRef.current = null;
     setHasReassigned(false);
     setHasEscalated(false);
     setMunicipalityOverride(null);
@@ -636,6 +685,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       setHeld((prev) => prev.filter((h) => h.lead.id !== leadId));
       setHasReassigned(true);
+      activeScriptRef.current = null;
       assignTo(entry.lead, plan, 0, slaMs);
     },
     [agents, assignTo, held, jurisdiction, jurisdictions, pushTrace, slaMs],
@@ -650,15 +700,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       isAwaiting: phase.kind === "awaiting",
       isAccepted: phase.kind === "accepted",
       closingsCount: closings.length,
+      heldCount: held.length,
       hasRuntimeMarket: jurisdictions.some((j) => j.createdAtRuntime),
       view,
     }),
-    [closings.length, hasEscalated, jurisdictions, phase.kind, routedLeads.length, view],
-  );
-
-  const tourDone = useMemo(
-    () => TOUR_STEPS.map((step) => step.isDone(tourFacts)),
-    [tourFacts],
+    [
+      closings.length,
+      hasEscalated,
+      held.length,
+      jurisdictions,
+      phase.kind,
+      routedLeads.length,
+      view,
+    ],
   );
 
   const answerTour = useCallback((answer: "accepted" | "declined") => {
@@ -667,7 +721,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setTourStep = useCallback((index: number) => {
-    setTourStepRaw(Math.max(0, Math.min(index, TOUR_STEPS.length - 1)));
+    setTourStepRaw(Math.max(0, index));
   }, []);
 
   const endTour = useCallback(() => setTourConsent("declined"), []);
@@ -862,10 +916,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     advanceStage,
     closeLead,
     armScript,
+    armEscalationWindow,
+    triggerUnroutable,
     tourConsent,
     tourStep,
     tourFacts,
-    tourDone,
     answerTour,
     setTourStep,
     endTour,

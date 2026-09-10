@@ -117,40 +117,86 @@
   },
   "tour": {
     "inviteTitle": "Première visite ?",
-    "inviteBody": "Je peux vous guider à travers ce que vous avez demandé — six étapes, vous cliquez, j'explique.",
-    "inviteYes": "Oui, guidez-moi",
+    "inviteBody": "Laissez-moi vous faire visiter. Je conduis, vous regardez — et vous pouvez reprendre la main à tout moment.",
+    "inviteYes": "Oui, montrez-moi",
     "inviteNo": "Non merci",
     "youWrote": "Vous avez écrit",
     "source": "votre appel d'offres",
     "step": "{n} / {total}",
-    "next": "Suivant",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "skip": "Quitter",
     "end": "Terminer",
-    "skip": "Quitter le guide",
-    "reopen": "Guide",
-    "goThere": "Aller à cet écran",
-    "route": {
-      "title": "Déclenchez un lead entrant",
-      "body": "Lisez le journal en dessous. La cinquième ligne exclut un courtier déjà au maximum de sa capacité. Et remarquez que cette page s'est chargée en français avant que vous ne touchiez à quoi que ce soit."
+    "again": "Revoir",
+    "reopen": "Visite guidée",
+    "pausedNote": "En pause — la console est à vous. Reprenez quand vous voulez.",
+    "market": {
+      "title": "Québec, en français par défaut",
+      "body": "Cette page s'est chargée en français avant toute interaction. Commission, étapes, terminologie et mentions légales viennent tous de la fiche de ce marché."
     },
-    "no-response": {
-      "title": "Ne touchez à rien",
-      "body": "Le courtier ne répondra pas. À l'expiration du délai, le lead s'escalade tout seul vers le suivant — sans intervention humaine."
+    "route": {
+      "title": "Un lead entre",
+      "body": "Je déclenche un lead à Laval. Regardez le journal de décision en dessous."
+    },
+    "decision-log": {
+      "title": "La décision, ligne par ligne",
+      "body": "Licence, géographie, capacité, langue — puis rotation équitable. La ligne « capacité » écarte Isabelle Bouchard, déjà à 12/12. Décidé en moins d'une milliseconde."
+    },
+    "assigned": {
+      "title": "Marie-Claude a le dossier",
+      "body": "La rotation équitable a choisi la courtière la moins récemment servie. SMS et notification poussée partent immédiatement."
+    },
+    "countdown": {
+      "title": "Elle a 60 secondes",
+      "body": "Le délai est compressé pour la démo. Elle ne répondra pas — regardez ce qui se passe à l'expiration."
+    },
+    "escalated": {
+      "title": "Escaladé tout seul",
+      "body": "Sans réponse, le lead s'est réattribué à Simon Gagnon. Aucune intervention humaine, aucun lead perdu dans une boîte de réception."
     },
     "accept": {
-      "title": "Le deuxième courtier l'a reçu",
-      "body": "Acceptez en son nom. Sa charge de dossiers augmente immédiatement, ce qui modifie l'acheminement du prochain lead."
+      "title": "Simon accepte",
+      "body": "J'accepte en son nom. Dans le produit réel, c'est un bouton dans son portail ou une réponse par SMS."
+    },
+    "load": {
+      "title": "Sa charge vient de changer",
+      "body": "Un dossier de plus à son compteur. Le prochain lead sera acheminé différemment — la capacité n'est pas décorative."
     },
     "close": {
-      "title": "Menez le dossier jusqu'à la transaction",
-      "body": "Les étapes viennent de la configuration de ce marché. Au Québec on conclut chez le notaire ; en Ontario on lève les conditions."
+      "title": "Du dossier à la transaction",
+      "body": "Les étapes viennent de la configuration du marché. Au Québec on conclut chez le notaire ; en Ontario on lève les conditions."
     },
-    "new-market": {
-      "title": "Ouvrez un marché qui n'existe pas",
-      "body": "Le formulaire est prérempli avec la Floride. Créez-la, puis acheminez-y un lead. Aucune ligne de code, aucun déploiement."
+    "unroutable": {
+      "title": "Et quand personne n'est disponible ?",
+      "body": "J'ai rempli le seul courtier qui couvre Gatineau, puis envoyé un lead là-bas. Plus aucun courtier admissible."
+    },
+    "hold-explained": {
+      "title": "Le lead n'est pas perdu",
+      "body": "Il tombe en file d'attente et l'administrateur est alerté. Le plafond a protégé le courtier au lieu de l'enterrer en silence."
+    },
+    "override": {
+      "title": "Dérogation manuelle",
+      "body": "L'administrateur peut passer outre le plafond. La licence et le territoire restent non négociables — un bureau plein est un jugement humain."
+    },
+    "jurisdictions": {
+      "title": "Ouvrir un nouveau marché",
+      "body": "Voici le gestionnaire de juridictions. J'ouvre le formulaire — prérempli avec la Floride."
+    },
+    "create-market": {
+      "title": "Je crée la Floride",
+      "body": "Devise, commission, langue, étapes : tout vient du formulaire. Aucune ligne de code, aucun déploiement."
+    },
+    "market-created": {
+      "title": "Le marché existe",
+      "body": "L'interface est passée à l'anglais, la devise au dollar américain. Le moteur d'acheminement l'utilise déjà."
     },
     "attribution": {
-      "title": "Le coût par transaction vient de bouger",
-      "body": "Le lead que vous avez conclu a porté sa campagne jusqu'au bout. Le calcul est réel ; les montants de dépense publicitaire sont des données d'exemple — les connecter à Google Ads et Meta est une configuration, pas une reconstruction."
+      "title": "Le coût par transaction a bougé",
+      "body": "Le lead conclu tout à l'heure a porté sa campagne jusqu'au bout. Le calcul est réel ; les montants publicitaires sont des données d'exemple — les brancher sur Google Ads et Meta est une configuration, pas une reconstruction."
+    },
+    "done": {
+      "title": "Voilà le moteur",
+      "body": "Acheminement, escalade, plafonds, dérogation, marchés configurables et attribution — le tout dans le navigateur, sans base de données. Le code est dans votre dépôt."
     }
   }
 }
