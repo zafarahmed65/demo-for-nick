@@ -114,5 +114,43 @@
     "next": "Next stage",
     "close": "Close the transaction",
     "closed": "Closed"
+  },
+  "tour": {
+    "inviteTitle": "First time here?",
+    "inviteBody": "I can walk you through what you asked for — six steps, you click, I explain.",
+    "inviteYes": "Yes, show me",
+    "inviteNo": "No thanks",
+    "youWrote": "You wrote",
+    "source": "your brief",
+    "step": "{n} / {total}",
+    "next": "Next",
+    "end": "Finish",
+    "skip": "Leave the guide",
+    "reopen": "Guide",
+    "goThere": "Go to that screen",
+    "route": {
+      "title": "Trigger an inbound lead",
+      "body": "Read the log underneath. The fifth line excludes a broker already at capacity. And note this page loaded in French before you touched anything."
+    },
+    "no-response": {
+      "title": "Touch nothing",
+      "body": "This broker will not respond. When the deadline passes the lead escalates itself to the next one, with nobody intervening."
+    },
+    "accept": {
+      "title": "The second broker got it",
+      "body": "Accept on their behalf. Their active file count rises immediately, which changes how the next lead routes."
+    },
+    "close": {
+      "title": "Take the file through to closing",
+      "body": "The stages come from this market's configuration. Quebec closes at a notary; Ontario waives conditions."
+    },
+    "new-market": {
+      "title": "Open a market that does not exist",
+      "body": "The form is pre-filled with Florida. Create it, then route a lead into it. No code, no deploy."
+    },
+    "attribution": {
+      "title": "Cost per closing just moved",
+      "body": "The lead you closed carried its campaign the whole way. The calculation is real; the ad-spend figures are sample data — connecting Google Ads and Meta is configuration, not a rebuild."
+    }
   }
 }

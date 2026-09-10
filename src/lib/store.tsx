@@ -21,6 +21,7 @@ import {
   type HoldReason,
 } from "./persistence";
 import type { ClosedLead } from "./attribution";
+import { TOUR_STEPS, type TourFacts } from "./tour";
 import type {
   Agent,
   Jurisdiction,
@@ -109,6 +110,22 @@ interface StoreValue {
   closings: ClosedLead[];
   advanceStage: () => void;
   closeLead: () => void;
+
+  /**
+   * Queue broker responses for the next lead, so a walkthrough step can promise
+   * an outcome and deliver it. The visitor still presses the button themselves.
+   */
+  armScript: (script: ("accept" | "ignore")[]) => void;
+
+  /* --- Anchored walkthrough --- */
+  tourConsent: "unasked" | "accepted" | "declined";
+  tourStep: number;
+  tourFacts: TourFacts;
+  /** Whether each step has genuinely been completed. */
+  tourDone: boolean[];
+  answerTour: (answer: "accepted" | "declined") => void;
+  setTourStep: (index: number) => void;
+  endTour: () => void;
 }
 
 export type View = "simulator" | "jurisdictions" | "attribution";
@@ -176,6 +193,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<View>("simulator");
   const [jurisdictionFormOpen, setJurisdictionFormOpen] = useState(false);
 
+  /* Scripted broker responses, indexed by escalation level. A walkthrough step
+     that promises "the broker does not respond" cannot rely on a dice roll.
+     Refs rather than state because the script is armed and then read within the
+     same interaction, before React would have re-rendered.
+
+     Two of them on purpose: `armed` is queued for the next lead; `active`
+     governs the lead in flight and must survive its escalations. One ref would
+     either be cleared before the escalation could read it, or stay in force
+     for every subsequent lead. */
+  const armedScriptRef = useRef<("accept" | "ignore")[] | null>(null);
+  const activeScriptRef = useRef<("accept" | "ignore")[] | null>(null);
+  const [tourConsent, setTourConsent] =
+    useState<"unasked" | "accepted" | "declined">("unasked");
+  const [tourStep, setTourStepRaw] = useState(0);
   const [routedLeads, setRoutedLeads] = useState<Lead[]>([]);
   const [closings, setClosings] = useState<ClosedLead[]>([]);
   const [now, setNow] = useState(() => Date.now());
@@ -234,7 +265,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (lead: Lead, plan: RoutingPlan, level: number, windowMs: number) => {
       const agent = plan.escalationOrder[level];
       const at = Date.now();
-      const willAccept = Math.random() < agent.responsiveness;
+      const scripted = activeScriptRef.current?.[level];
+      const willAccept =
+        scripted === undefined
+          ? Math.random() < agent.responsiveness
+          : scripted === "accept";
       commitPhase({
         kind: "awaiting",
         state: {
@@ -255,6 +290,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const trigger = useCallback(
     (override?: string, windowMsOverride?: number) => {
+      // Consume whatever the walkthrough queued; later leads are random again.
+      activeScriptRef.current = armedScriptRef.current;
+      armedScriptRef.current = null;
       const town = override ?? municipality;
       const lead = makeLead(jurisdiction.code, town, locale);
       const plan = routeLead(lead, jurisdiction, agents);
@@ -277,6 +315,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     [agents, assignTo, commitPhase, jurisdiction, locale, municipality, slaMs],
   );
+
+  const armScript = useCallback((script: ("accept" | "ignore")[]) => {
+    armedScriptRef.current = script;
+  }, []);
 
   const accept = useCallback(() => {
     const current = phaseRef.current;
@@ -474,7 +516,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
 
       const at = Date.now();
-      const willAccept = Math.random() < nextAgent.responsiveness;
+      const scripted = activeScriptRef.current?.[nextLevel];
+      const willAccept =
+        scripted === undefined
+          ? Math.random() < nextAgent.responsiveness
+          : scripted === "accept";
       commitPhase({
         kind: "awaiting",
         state: {
@@ -502,6 +548,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setAgents(SEED_AGENTS);
     setRoutedLeads([]);
     setClosings([]);
+    armedScriptRef.current = null;
+    activeScriptRef.current = null;
     setHasReassigned(false);
     setHasEscalated(false);
     setMunicipalityOverride(null);
@@ -593,6 +641,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [agents, assignTo, held, jurisdiction, jurisdictions, pushTrace, slaMs],
   );
 
+  /* Facts are read off state the store already holds, so a walkthrough step
+     advances because the event happened — not because someone pressed Next. */
+  const tourFacts: TourFacts = useMemo(
+    () => ({
+      routedCount: routedLeads.length,
+      hasEscalated,
+      isAwaiting: phase.kind === "awaiting",
+      isAccepted: phase.kind === "accepted",
+      closingsCount: closings.length,
+      hasRuntimeMarket: jurisdictions.some((j) => j.createdAtRuntime),
+      view,
+    }),
+    [closings.length, hasEscalated, jurisdictions, phase.kind, routedLeads.length, view],
+  );
+
+  const tourDone = useMemo(
+    () => TOUR_STEPS.map((step) => step.isDone(tourFacts)),
+    [tourFacts],
+  );
+
+  const answerTour = useCallback((answer: "accepted" | "declined") => {
+    setTourConsent(answer);
+    setTourStepRaw(0);
+  }, []);
+
+  const setTourStep = useCallback((index: number) => {
+    setTourStepRaw(Math.max(0, Math.min(index, TOUR_STEPS.length - 1)));
+  }, []);
+
+  const endTour = useCallback(() => setTourConsent("declined"), []);
+
   const addJurisdiction = useCallback((input: NewJurisdictionInput) => {
     const preset = WORKFLOW_PRESETS[input.preset] ?? WORKFLOW_PRESETS["ca-standard"];
     const created: Jurisdiction = {
@@ -681,6 +760,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setRoutedLeads(stored.routedLeads);
       setClosings(stored.closings);
       setHasEscalated(stored.hasEscalated);
+      setTourConsent(stored.tourConsent);
+      setTourStepRaw(stored.tourStep);
       setHasReassigned(stored.hasReassigned);
     }
     setHydrated(true);
@@ -690,7 +771,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     saveState({
-      version: 3,
+      version: 4,
       jurisdictions,
       agents,
       jurisdictionCode,
@@ -702,6 +783,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       closings,
       hasEscalated,
       hasReassigned,
+      tourConsent,
+      tourStep,
     });
   }, [
     hydrated,
@@ -716,6 +799,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     closings,
     hasEscalated,
     hasReassigned,
+    tourConsent,
+    tourStep,
   ]);
 
   /* --- Document language -------------------------------------------------
@@ -776,6 +861,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     closings,
     advanceStage,
     closeLead,
+    armScript,
+    tourConsent,
+    tourStep,
+    tourFacts,
+    tourDone,
+    answerTour,
+    setTourStep,
+    endTour,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

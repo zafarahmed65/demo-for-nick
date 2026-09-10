@@ -50,6 +50,7 @@ export function Button({
   type = "button",
   disabled,
   className = "",
+  dataTour,
 }: {
   children: ReactNode;
   onClick?: () => void;
@@ -58,6 +59,8 @@ export function Button({
   type?: "button" | "submit";
   disabled?: boolean;
   className?: string;
+  /** Anchor name for the walkthrough to point at. */
+  dataTour?: string;
 }) {
   const base =
     "inline-flex items-center justify-center gap-1.5 font-medium rounded-sm transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap";
@@ -77,6 +80,7 @@ export function Button({
   return (
     <button
       type={type}
+      data-tour={dataTour}
       onClick={onClick}
       disabled={disabled}
       className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}

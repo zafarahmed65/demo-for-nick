@@ -12,11 +12,11 @@ the point is the engine, and the engine is what the brief asks about.
 
 ## What to look at, in order
 
-**0 — Or follow the guide.** A bar along the bottom walks through six
-requirements from the brief, quoting each one and putting the thing that answers
-it one press away. It sets the board up and stops; you still pull every trigger.
-Each step is marked complete only when the event actually happens — the guide
-observes, it does not take your word for it.
+**0 — Or accept the walkthrough.** On a first visit it offers to guide you. Say
+yes and it points at one real control at a time, quotes the requirement from the
+brief that the control answers, and waits. You press every button yourself. A
+step is marked complete only when the event actually happens — it observes,
+rather than taking your word for it.
 
 **1 — Watch a lead get routed and escalated.** Open the routing simulator, set
 demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with

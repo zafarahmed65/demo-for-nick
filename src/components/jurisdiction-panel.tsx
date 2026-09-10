@@ -35,6 +35,7 @@ export function JurisdictionPanel() {
             size="sm"
             variant={adding ? "secondary" : "primary"}
             onClick={() => setAdding(!adding)}
+            dataTour="add-jurisdiction"
           >
             <Plus size={12} />
             {adding ? t("jur.cancel") : t("jur.add")}

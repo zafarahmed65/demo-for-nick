@@ -14,7 +14,7 @@ import type { Agent, Jurisdiction, Lead, Locale } from "./types";
  * error must degrade to seed state rather than take the page down.
  */
 
-const KEY = "lead-engine.v3";
+const KEY = "lead-engine.v4";
 
 /**
  * Why a lead ended up in the hold queue. The two causes need different
@@ -31,7 +31,7 @@ export interface HeldLead {
 }
 
 export interface PersistedState {
-  version: 3;
+  version: 4;
   jurisdictions: Jurisdiction[];
   agents: Agent[];
   jurisdictionCode: string;
@@ -44,6 +44,10 @@ export interface PersistedState {
   closings: ClosedLead[];
   hasEscalated: boolean;
   hasReassigned: boolean;
+  /** "unasked" until the visitor answers the invitation, so it is offered
+      exactly once and never nags a returning viewer. */
+  tourConsent: "unasked" | "accepted" | "declined";
+  tourStep: number;
 }
 
 export function loadState(): PersistedState | null {
@@ -88,7 +92,7 @@ function isValid(value: unknown): value is PersistedState {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<PersistedState>;
   return (
-    candidate.version === 3 &&
+    candidate.version === 4 &&
     Array.isArray(candidate.jurisdictions) &&
     candidate.jurisdictions.length > 0 &&
     Array.isArray(candidate.agents) &&
@@ -96,6 +100,10 @@ function isValid(value: unknown): value is PersistedState {
     Array.isArray(candidate.routedLeads) &&
     Array.isArray(candidate.closings) &&
     typeof candidate.hasEscalated === "boolean" &&
+    typeof candidate.tourStep === "number" &&
+    (candidate.tourConsent === "unasked" ||
+      candidate.tourConsent === "accepted" ||
+      candidate.tourConsent === "declined") &&
     typeof candidate.hasReassigned === "boolean" &&
     typeof candidate.jurisdictionCode === "string" &&
     (candidate.locale === "fr" || candidate.locale === "en") &&

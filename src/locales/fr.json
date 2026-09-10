@@ -114,5 +114,43 @@
     "next": "Étape suivante",
     "close": "Conclure la transaction",
     "closed": "Transaction conclue"
+  },
+  "tour": {
+    "inviteTitle": "Première visite ?",
+    "inviteBody": "Je peux vous guider à travers ce que vous avez demandé — six étapes, vous cliquez, j'explique.",
+    "inviteYes": "Oui, guidez-moi",
+    "inviteNo": "Non merci",
+    "youWrote": "Vous avez écrit",
+    "source": "votre appel d'offres",
+    "step": "{n} / {total}",
+    "next": "Suivant",
+    "end": "Terminer",
+    "skip": "Quitter le guide",
+    "reopen": "Guide",
+    "goThere": "Aller à cet écran",
+    "route": {
+      "title": "Déclenchez un lead entrant",
+      "body": "Lisez le journal en dessous. La cinquième ligne exclut un courtier déjà au maximum de sa capacité. Et remarquez que cette page s'est chargée en français avant que vous ne touchiez à quoi que ce soit."
+    },
+    "no-response": {
+      "title": "Ne touchez à rien",
+      "body": "Le courtier ne répondra pas. À l'expiration du délai, le lead s'escalade tout seul vers le suivant — sans intervention humaine."
+    },
+    "accept": {
+      "title": "Le deuxième courtier l'a reçu",
+      "body": "Acceptez en son nom. Sa charge de dossiers augmente immédiatement, ce qui modifie l'acheminement du prochain lead."
+    },
+    "close": {
+      "title": "Menez le dossier jusqu'à la transaction",
+      "body": "Les étapes viennent de la configuration de ce marché. Au Québec on conclut chez le notaire ; en Ontario on lève les conditions."
+    },
+    "new-market": {
+      "title": "Ouvrez un marché qui n'existe pas",
+      "body": "Le formulaire est prérempli avec la Floride. Créez-la, puis acheminez-y un lead. Aucune ligne de code, aucun déploiement."
+    },
+    "attribution": {
+      "title": "Le coût par transaction vient de bouger",
+      "body": "Le lead que vous avez conclu a porté sa campagne jusqu'au bout. Le calcul est réel ; les montants de dépense publicitaire sont des données d'exemple — les connecter à Google Ads et Meta est une configuration, pas une reconstruction."
+    }
   }
 }

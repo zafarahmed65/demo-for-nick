@@ -23,7 +23,7 @@ function CountdownRing({ ratio, seconds }: { ratio: number; seconds: number }) {
         : "var(--color-danger-500)";
 
   return (
-    <div className="relative size-[64px] shrink-0">
+    <div data-tour="countdown" className="relative size-[64px] shrink-0">
       <svg viewBox="0 0 64 64" className="size-full -rotate-90">
         <circle
           cx="32"
@@ -256,7 +256,7 @@ function AssignmentCard() {
                     {t("stage.next")}
                     <ChevronRight size={11} />
                   </Button>
-                  <Button size="sm" variant="primary" onClick={closeLead}>
+                  <Button size="sm" variant="primary" onClick={closeLead} dataTour="close-lead">
                     <Check size={11} />
                     {t("stage.close")}
                   </Button>
@@ -306,7 +306,7 @@ function AssignmentCard() {
             </p>
           </div>
           <div className="flex gap-1.5 ml-auto">
-            <Button size="sm" variant="primary" onClick={accept}>
+            <Button size="sm" variant="primary" onClick={accept} dataTour="accept">
               <Check size={12} />
               {t("sim.accept")}
             </Button>
@@ -350,6 +350,7 @@ export function Simulator() {
               variant="primary"
               onClick={() => trigger()}
               disabled={phase.kind === "awaiting"}
+              dataTour="trigger"
             >
               <Play size={12} />
               {t("sim.trigger")}

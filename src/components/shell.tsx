@@ -1,12 +1,13 @@
 "use client";
 
-import { Radio, Globe2, BarChart3, Code2 } from "lucide-react";
+import { Radio, Globe2, BarChart3, Code2, BookOpen } from "lucide-react";
 import { useStore, type View } from "@/lib/store";
 import { Segmented } from "./ui";
 import { Simulator } from "./simulator";
 import { Inspector } from "./inspector";
 import { JurisdictionPanel } from "./jurisdiction-panel";
 import { AttributionPanel } from "./attribution-panel";
+import { Tour } from "./tour";
 import type { Locale } from "@/lib/types";
 
 const REPO_URL = "https://github.com/zafarahmed65/nick-demo";
@@ -27,6 +28,8 @@ export function Shell() {
     setJurisdictionCode,
     view,
     setView,
+    tourConsent,
+    answerTour,
   } = useStore();
 
   return (
@@ -56,6 +59,7 @@ export function Shell() {
             return (
               <button
                 key={item.key}
+                data-tour={`nav-${item.key}`}
                 onClick={() => setView(item.key)}
                 className={`shrink-0 lg:w-full flex items-center gap-2.5 h-9 px-3 rounded-md text-small whitespace-nowrap transition-colors duration-150 ${
                   active
@@ -131,6 +135,15 @@ export function Shell() {
             {t(NAV.find((n) => n.key === view)!.labelKey)}
           </h1>
           <div className="flex items-center gap-3 shrink-0 ml-3">
+            {tourConsent !== "accepted" && (
+              <button
+                onClick={() => answerTour("accepted")}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-small text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-colors duration-150"
+              >
+                <BookOpen size={13} />
+                {t("tour.reopen")}
+              </button>
+            )}
             <span className="font-mono text-micro text-ink-400 tabular">
               {jurisdiction.code} · {locale.toUpperCase()}
             </span>
@@ -150,8 +163,9 @@ export function Shell() {
             </aside>
           )}
         </div>
-
       </div>
+
+      <Tour />
     </div>
   );
 }
