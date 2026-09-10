@@ -2,6 +2,7 @@ import type {
   Agent,
   Jurisdiction,
   Lead,
+  LocalizedText,
   RoutingCandidate,
   RoutingPlan,
   TraceEntry,
@@ -31,7 +32,7 @@ function step(
   kind: TraceKind,
   fr: string,
   en: string,
-  annotation?: string,
+  annotation?: string | LocalizedText,
   agentId?: string,
 ): TraceEntry {
   traceSeq += 1;
@@ -40,9 +41,21 @@ function step(
     at: Date.now(),
     kind,
     message: { fr, en },
-    annotation,
+    // A bare string is language-neutral (counts, ids, durations).
+    annotation:
+      typeof annotation === "string"
+        ? { fr: annotation, en: annotation }
+        : annotation,
     agentId,
   };
+}
+
+/**
+ * French treats 0 and 1 as singular; English only 1. Getting this wrong reads
+ * as machine-translated, which is fatal for a French-first Quebec product.
+ */
+function frPlural(n: number, singular: string, plural: string): string {
+  return n > 1 ? plural : singular;
 }
 
 /** Load as a fraction of capacity. Lower is more available. */
@@ -103,12 +116,13 @@ export function routeLead(
     `Non licencié en ${jurisdiction.code}`,
     `Not licensed in ${jurisdiction.code}`,
   );
+  const licensed = countEligible(candidates);
   steps.push(
     step(
       "filter",
-      `Filtre licence → ${countEligible(candidates)} ${jurisdiction.terminology.agentPlural.fr} licenciés`,
-      `Licence filter → ${countEligible(candidates)} licensed ${jurisdiction.terminology.agentPlural.en}`,
-      `${countEligible(candidates)}/${agents.length}`,
+      `Filtre licence → ${licensed} ${frPlural(licensed, jurisdiction.terminology.agent.fr, jurisdiction.terminology.agentPlural.fr)} ${frPlural(licensed, "licencié", "licenciés")}`,
+      `Licence filter → ${licensed} licensed ${licensed === 1 ? jurisdiction.terminology.agent.en : jurisdiction.terminology.agentPlural.en}`,
+      `${licensed}/${agents.length}`,
     ),
   );
 
@@ -119,12 +133,14 @@ export function routeLead(
     `Ne couvre pas ${lead.municipality}`,
     `Does not cover ${lead.municipality}`,
   );
+  const covering = countEligible(candidates);
+  const geoDropped = beforeGeo - covering;
   steps.push(
     step(
       "filter",
-      `Filtre géographique → ${countEligible(candidates)} couvrent ${lead.municipality}`,
-      `Geography filter → ${countEligible(candidates)} cover ${lead.municipality}`,
-      `−${beforeGeo - countEligible(candidates)}`,
+      `Filtre géographique → ${covering} ${frPlural(covering, "couvre", "couvrent")} ${lead.municipality}`,
+      `Geography filter → ${covering} cover${covering === 1 ? "s" : ""} ${lead.municipality}`,
+      geoDropped > 0 ? `−${geoDropped}` : undefined,
     ),
   );
 
@@ -146,7 +162,10 @@ export function routeLead(
       capExcluded > 0
         ? `Capacity filter → ${capExcluded} excluded (active files at cap)`
         : "Capacity filter → none excluded",
-      `${countEligible(candidates)} restant${countEligible(candidates) > 1 ? "s" : ""}`,
+      {
+        fr: `${countEligible(candidates)} ${frPlural(countEligible(candidates), "restant", "restants")}`,
+        en: `${countEligible(candidates)} remaining`,
+      },
     ),
   );
 
@@ -158,12 +177,14 @@ export function routeLead(
     `Ne sert pas en ${lead.locale.toUpperCase()}`,
     `Does not serve in ${lead.locale.toUpperCase()}`,
   );
+  const speaking = countEligible(candidates);
+  const langDropped = beforeLang - speaking;
   steps.push(
     step(
       "filter",
-      `Filtre linguistique (${lead.locale.toUpperCase()}) → ${countEligible(candidates)} admissibles`,
-      `Language filter (${lead.locale.toUpperCase()}) → ${countEligible(candidates)} eligible`,
-      `−${beforeLang - countEligible(candidates)}`,
+      `Filtre linguistique (${lead.locale.toUpperCase()}) → ${speaking} ${frPlural(speaking, "admissible", "admissibles")}`,
+      `Language filter (${lead.locale.toUpperCase()}) → ${speaking} eligible`,
+      langDropped > 0 ? `−${langDropped}` : undefined,
     ),
   );
 
@@ -197,7 +218,10 @@ export function routeLead(
       "assign",
       `Rotation équitable → ${escalationOrder[0].name}`,
       `Round-robin → ${escalationOrder[0].name}`,
-      `décision ${decisionMs.toFixed(1)} ms`,
+      {
+        fr: `décision ${decisionMs.toFixed(1)} ms`,
+        en: `decision ${decisionMs.toFixed(1)} ms`,
+      },
       escalationOrder[0].id,
     ),
   );

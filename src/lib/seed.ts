@@ -13,10 +13,11 @@ export const SEED_AGENTS: Agent[] = [
     jurisdictions: ["QC"],
     coverage: ["Laval", "Montréal", "Terrebonne"],
     languages: ["fr", "en"],
-    activeFiles: 7,
+    // Deliberately the least-loaded broker in Laval, so round-robin reaches her
+    // first and her low responsiveness is what actually drives the escalation.
+    activeFiles: 2,
     capacity: 12,
     lastAssignedAt: 0,
-    // Frequently misses the window — this is what drives the escalation demo.
     responsiveness: 0.15,
   },
   {
@@ -87,7 +88,7 @@ export const SEED_AGENTS: Agent[] = [
     jurisdictions: ["ON"],
     coverage: ["Toronto", "Markham", "Vaughan"],
     languages: ["en"],
-    activeFiles: 5,
+    activeFiles: 2,
     capacity: 12,
     lastAssignedAt: 0,
     responsiveness: 0.3,
@@ -99,7 +100,7 @@ export const SEED_AGENTS: Agent[] = [
     jurisdictions: ["ON"],
     coverage: ["Ottawa", "Kitchener", "Toronto"],
     languages: ["en", "fr"],
-    activeFiles: 3,
+    activeFiles: 5,
     capacity: 10,
     lastAssignedAt: 0,
     responsiveness: 0.85,

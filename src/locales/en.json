@@ -1,0 +1,109 @@
+{
+  "app": {
+    "name": "Lead Engine",
+    "tagline": "Technical sandbox",
+    "context": "Architecture demonstration"
+  },
+  "nav": {
+    "simulator": "Routing simulator",
+    "jurisdictions": "Jurisdictions",
+    "attribution": "Attribution"
+  },
+  "rail": {
+    "jurisdiction": "Active jurisdiction",
+    "language": "Language",
+    "roster": "Brokers",
+    "commission": "Commission",
+    "market": "Market",
+    "sla": "Response SLA"
+  },
+  "sim": {
+    "title": "Live routing",
+    "lede": "An inbound lead is filtered by licence, geography, capacity and language, then assigned by fair rotation. If nobody responds before the deadline, it escalates automatically.",
+    "trigger": "New inbound lead",
+    "municipality": "Municipality",
+    "speed": "Demo speed",
+    "speedHint": "Compresses the real {sla}s SLA for demonstration",
+    "reset": "Reset",
+    "empty": "No lead in flight",
+    "emptyHint": "Trigger a lead to watch the routing decision resolve, second by second.",
+    "awaiting": "Awaiting response",
+    "assignedTo": "Assigned to",
+    "accept": "Accept",
+    "decline": "Decline",
+    "remaining": "remaining",
+    "breached": "SLA breached",
+    "level": "Escalation level",
+    "decisionTime": "Decision time"
+  },
+  "trace": {
+    "title": "Decision log",
+    "subtitle": "Real timestamps, not simulated"
+  },
+  "roster": {
+    "title": "Broker availability",
+    "files": "files",
+    "atCapacity": "At capacity",
+    "available": "Available",
+    "unlicensed": "Out of jurisdiction"
+  },
+  "hold": {
+    "title": "Hold queue",
+    "empty": "Empty — every lead found an owner",
+    "reason": "No response after {levels} escalations",
+    "reassign": "Reassign manually"
+  },
+  "jur": {
+    "title": "Jurisdiction manager",
+    "lede": "Every jurisdiction is data, not code. Add a market here and the routing engine uses it immediately — with no deploy.",
+    "add": "Add jurisdiction",
+    "code": "Code",
+    "name": "Name",
+    "country": "Country",
+    "commission": "Our commission",
+    "marketRate": "Market rate",
+    "sla": "SLA (seconds)",
+    "defaultLocale": "Default language",
+    "workflow": "Workflow template",
+    "municipalities": "Municipalities",
+    "municipalitiesHint": "Comma separated",
+    "create": "Create jurisdiction",
+    "cancel": "Cancel",
+    "runtime": "Created at runtime",
+    "stages": "stages",
+    "terminology": "Terminology",
+    "disclosure": "Legal disclosure",
+    "documents": "Required documents",
+    "seller": "Seller savings",
+    "savingsOn": "On a property of"
+  },
+  "attr": {
+    "title": "Attribution — ad click to closing",
+    "lede": "The ad click is carried all the way to the closing, so cost per closed sale is calculated rather than estimated.",
+    "campaign": "Campaign",
+    "channel": "Channel",
+    "spend": "Spend",
+    "clicks": "Clicks",
+    "leads": "Leads",
+    "closings": "Closings",
+    "cpl": "Cost / lead",
+    "cpa": "Cost / closing",
+    "total": "Total",
+    "journey": "One lead's journey",
+    "best": "Best performer",
+    "worst": "Weakest performer"
+  },
+  "journey": {
+    "click": "Ad click",
+    "form": "Form submitted",
+    "routed": "Routed",
+    "accepted": "Accepted by broker",
+    "listed": "Active listing",
+    "closed": "Closed"
+  },
+  "common": {
+    "language": "English",
+    "showSource": "View source",
+    "note": "Note"
+  }
+}

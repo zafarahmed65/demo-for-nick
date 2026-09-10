@@ -88,9 +88,14 @@ export interface TraceEntry {
   at: number;
   kind: TraceKind;
   message: LocalizedText;
-  /** Right-aligned annotation: elapsed time, counts, agent name. */
-  annotation?: string;
+  /** Right-aligned annotation: elapsed time, counts, agent name. Localized
+      like every other visible string — a French word leaking into the English
+      trace is exactly the bug internationalization is supposed to prevent. */
+  annotation?: LocalizedText;
   agentId?: string;
+  /** Position within the batch this entry arrived in, so the UI can stagger
+      a group of steps without inspecting render history. */
+  batchIndex?: number;
 }
 
 export interface RoutingCandidate {

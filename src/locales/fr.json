@@ -1,0 +1,109 @@
+{
+  "app": {
+    "name": "Moteur de leads",
+    "tagline": "Bac à sable technique",
+    "context": "Démonstration d'architecture"
+  },
+  "nav": {
+    "simulator": "Simulateur d'acheminement",
+    "jurisdictions": "Juridictions",
+    "attribution": "Attribution"
+  },
+  "rail": {
+    "jurisdiction": "Juridiction active",
+    "language": "Langue",
+    "roster": "Courtiers",
+    "commission": "Commission",
+    "market": "Marché",
+    "sla": "Délai de réponse"
+  },
+  "sim": {
+    "title": "Acheminement en direct",
+    "lede": "Un lead entrant est acheminé par licence, géographie, capacité et langue, puis attribué par rotation équitable. S'il n'y a pas de réponse avant l'échéance, il est escaladé automatiquement.",
+    "trigger": "Nouveau lead entrant",
+    "municipality": "Municipalité",
+    "speed": "Vitesse de démo",
+    "speedHint": "Réduit le délai réel de {sla} s pour la démonstration",
+    "reset": "Réinitialiser",
+    "empty": "Aucun lead en cours",
+    "emptyHint": "Déclenchez un lead pour voir la décision d'acheminement, seconde par seconde.",
+    "awaiting": "En attente de réponse",
+    "assignedTo": "Attribué à",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "remaining": "restant",
+    "breached": "Échéance dépassée",
+    "level": "Niveau d'escalade",
+    "decisionTime": "Temps de décision"
+  },
+  "trace": {
+    "title": "Journal de décision",
+    "subtitle": "Horodatage réel, non simulé"
+  },
+  "roster": {
+    "title": "Disponibilité des courtiers",
+    "files": "dossiers",
+    "atCapacity": "Capacité atteinte",
+    "available": "Disponible",
+    "unlicensed": "Hors juridiction"
+  },
+  "hold": {
+    "title": "File d'attente",
+    "empty": "Vide — tous les leads ont trouvé preneur",
+    "reason": "Aucune réponse après {levels} escalades",
+    "reassign": "Réattribuer manuellement"
+  },
+  "jur": {
+    "title": "Gestionnaire de juridictions",
+    "lede": "Chaque juridiction est une donnée, pas du code. Ajoutez un marché ici et le moteur d'acheminement l'utilise immédiatement — sans déploiement.",
+    "add": "Ajouter une juridiction",
+    "code": "Code",
+    "name": "Nom",
+    "country": "Pays",
+    "commission": "Notre commission",
+    "marketRate": "Taux du marché",
+    "sla": "Délai (secondes)",
+    "defaultLocale": "Langue par défaut",
+    "workflow": "Modèle de flux",
+    "municipalities": "Municipalités",
+    "municipalitiesHint": "Séparées par des virgules",
+    "create": "Créer la juridiction",
+    "cancel": "Annuler",
+    "runtime": "Créée à l'exécution",
+    "stages": "étapes",
+    "terminology": "Terminologie",
+    "disclosure": "Mention légale",
+    "documents": "Documents requis",
+    "seller": "Économie du vendeur",
+    "savingsOn": "Sur une propriété de"
+  },
+  "attr": {
+    "title": "Attribution — du clic à la transaction",
+    "lede": "Le clic publicitaire est conservé jusqu'à la transaction. Le coût par transaction conclue est donc calculé, pas estimé.",
+    "campaign": "Campagne",
+    "channel": "Canal",
+    "spend": "Dépense",
+    "clicks": "Clics",
+    "leads": "Leads",
+    "closings": "Transactions",
+    "cpl": "Coût / lead",
+    "cpa": "Coût / transaction",
+    "total": "Total",
+    "journey": "Parcours d'un lead",
+    "best": "Meilleur rendement",
+    "worst": "Rendement le plus faible"
+  },
+  "journey": {
+    "click": "Clic publicitaire",
+    "form": "Formulaire soumis",
+    "routed": "Acheminé",
+    "accepted": "Accepté par le courtier",
+    "listed": "Inscription active",
+    "closed": "Transaction conclue"
+  },
+  "common": {
+    "language": "Français",
+    "showSource": "Voir le code source",
+    "note": "Note"
+  }
+}
