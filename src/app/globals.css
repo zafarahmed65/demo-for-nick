@@ -1,26 +1,187 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Lead Engine Sandbox — design tokens
+   Set before any component is built, so every surface inherits
+   the same palette, scale and rhythm rather than improvising.
+   ============================================================ */
+
+@theme {
+  /* --- Neutral ramp: warm stone, never pure grey --------------- */
+  --color-ink-50:  #faf9f7;
+  --color-ink-100: #f4f2ef;
+  --color-ink-150: #edeae6;
+  --color-ink-200: #e4e0da;
+  --color-ink-300: #d2ccc3;
+  --color-ink-400: #a8a199;
+  --color-ink-500: #7a736b;
+  --color-ink-600: #57514b;
+  --color-ink-700: #403b36;
+  --color-ink-800: #2a2622;
+  --color-ink-900: #1a1714;
+  --color-ink-950: #0f0d0b;
+
+  /* --- Accent: deep pine. Property, money, trust --------------- */
+  --color-pine-50:  #f0f5f2;
+  --color-pine-100: #dce9e1;
+  --color-pine-200: #b8d1c3;
+  --color-pine-300: #8ab39c;
+  --color-pine-400: #5a8f73;
+  --color-pine-500: #3a7154;
+  --color-pine-600: #2c5a42;
+  --color-pine-700: #234835;
+  --color-pine-800: #1b3728;
+  --color-pine-900: #14291e;
+
+  /* --- Functional status only. Never decorative --------------- */
+  --color-warn-50:  #fdf6e7;
+  --color-warn-200: #f5d98f;
+  --color-warn-500: #b7791f;
+  --color-warn-700: #8a5a12;
+
+  --color-danger-50:  #fdefee;
+  --color-danger-200: #f3c0bc;
+  --color-danger-500: #b4362c;
+  --color-danger-700: #8a271f;
+
+  --color-ok-50:  #edf6f0;
+  --color-ok-200: #b6dcc5;
+  --color-ok-500: #2f7d4f;
+  --color-ok-700: #1f5c39;
+
+  /* --- Type scale, ~1.25 ratio -------------------------------- */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-md: 1rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.6rem;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.85rem;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 2.15rem;
+
+  /* --- Radii: restrained. No pill-shaped cards ---------------- */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* --- Semantic surface aliases -------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface-canvas: var(--color-ink-100);
+  --surface-raised: #ffffff;
+  --surface-sunken: var(--color-ink-150);
+  --hairline: var(--color-ink-200);
+  --hairline-strong: var(--color-ink-300);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-canvas);
+  color: var(--color-ink-800);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings get real tracking control, never browser defaults */
+h1, h2, h3, h4 {
+  letter-spacing: -0.021em;
+  color: var(--color-ink-900);
+  font-weight: 560;
+}
+
+/* Numerals must hold their column while a timer ticks.
+   This single rule is what keeps the trace from jittering. */
+.tabular,
+.font-mono,
+[class*="font-mono"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+}
+
+::selection {
+  background: var(--color-pine-200);
+  color: var(--color-pine-900);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-pine-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* Thin, unobtrusive scrollbars inside dense panels */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-300) transparent;
+}
+.scroll-slim::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ============================================================
+   Motion — 150–200ms ease-out. Nothing bounces.
+   ============================================================ */
+
+@keyframes trace-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-trace-in {
+  animation: trace-in 180ms var(--ease-out-soft) both;
+}
+
+@keyframes beat {
+  0%   { background-color: transparent; }
+  22%  { background-color: var(--color-danger-50); }
+  100% { background-color: transparent; }
+}
+/* The escalation moment gets its own visual beat so it lands */
+.animate-beat {
+  animation: beat 1100ms var(--ease-out-soft) both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-rise {
+  animation: rise 200ms var(--ease-out-soft) both;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }
