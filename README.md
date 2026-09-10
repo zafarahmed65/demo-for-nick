@@ -107,9 +107,12 @@ without a migration.
 
 ## What this is not
 
-No authentication, no persistence, no marketing site, no mobile app, no real
-notification delivery. Reloading resets everything. Broker responsiveness is
-simulated so the escalation path can be demonstrated on demand.
+No authentication, no marketing site, no mobile app, no real notification
+delivery, and no server-side database. Broker responsiveness is simulated so the
+escalation path can be demonstrated on demand.
+
+State persists in `localStorage`, so a market you add survives a reload —
+**Réinitialiser** puts it back to seed. That is per-browser, not a backend.
 
 ## Running it
 
@@ -119,6 +122,31 @@ npm run dev
 ```
 
 No environment variables, no services to configure.
+
+## Tests
+
+```bash
+npm test
+```
+
+27 tests across two suites, with no mocking of the engine itself — `routeLead`
+is pure, so it can be pinned down directly.
+
+[`routing.test.ts`](src/lib/routing.test.ts) covers the four eligibility
+filters, round-robin ranking, load-ratio tie-breaking and the empty-roster path.
+Three cases are regression guards for bugs found while building this: French
+agreement in the trace (`1 couvre` vs `4 couvrent`), French leaking into the
+English trace, and the assumption that a jurisdiction is hard-coded — that last
+one routes a jurisdiction invented at runtime, which turns the claim in
+*Question 2* above into an executable assertion.
+
+[`persistence.test.ts`](src/lib/persistence.test.ts) covers the defensive paths:
+blocked storage, exceeded quota, malformed JSON, a stale schema version, and
+server-side rendering where there is no `window`.
+
+The suites were checked by mutation — removing the capacity filter, forcing
+French plurals, leaking a French annotation into English, dropping the
+round-robin sort, or removing stored-state validation each fail the tests.
 
 ## Stack
 

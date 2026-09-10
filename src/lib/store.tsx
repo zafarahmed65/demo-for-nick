@@ -13,6 +13,12 @@ import { SEED_JURISDICTIONS, WORKFLOW_PRESETS } from "./jurisdictions";
 import { SEED_AGENTS, makeLead } from "./seed";
 import { routeLead } from "./routing";
 import { translate } from "./i18n";
+import {
+  clearState,
+  loadState,
+  saveState,
+  type HeldLead,
+} from "./persistence";
 import type {
   Agent,
   Jurisdiction,
@@ -21,6 +27,8 @@ import type {
   RoutingPlan,
   TraceEntry,
 } from "./types";
+
+export type { HeldLead };
 
 /**
  * Single source of truth for the sandbox.
@@ -47,11 +55,6 @@ type Phase =
   | { kind: "awaiting"; state: Awaiting }
   | { kind: "accepted"; lead: Lead; agentId: string; level: number }
   | { kind: "held"; lead: Lead };
-
-export interface HeldLead {
-  lead: Lead;
-  escalations: number;
-}
 
 interface StoreValue {
   locale: Locale;
@@ -137,6 +140,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [held, setHeld] = useState<HeldLead[]>([]);
   const [speed, setSpeed] = useState(4);
   const [municipalityOverride, setMunicipalityOverride] = useState<string | null>(null);
+  /* Gates the save effect. Without it the first render would immediately
+     overwrite stored state with seed state, before the load has run. */
+  const [hydrated, setHydrated] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const jurisdiction = useMemo(
@@ -355,6 +361,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setHeld([]);
     setAgents(SEED_AGENTS);
     setMunicipalityOverride(null);
+    setJurisdictions(SEED_JURISDICTIONS);
+    setJurisdictionCodeRaw("QC");
+    setLocale("fr");
+    // Otherwise the next reload would restore what was just reset.
+    clearState();
   }, [commitPhase]);
 
   const reassignHeld = useCallback(
@@ -421,6 +432,69 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     commitPhase({ kind: "idle" });
     setTrace([]);
   }, [commitPhase]);
+
+  /* --- Persistence ------------------------------------------------------
+     The page is statically prerendered, so stored state cannot be read in a
+     useState initializer without causing a hydration mismatch. It is read once
+     here, after mount, and applied.
+
+     set-state-in-effect exists to catch effects that cascade. This one has no
+     dependencies and reads a non-reactive external store, so it runs exactly
+     once per mount and cannot loop. The rule is disabled for this effect only,
+     and re-enabled immediately after. */
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const stored = loadState();
+    if (stored) {
+      setJurisdictions(stored.jurisdictions);
+      setAgents(stored.agents);
+      const exists = stored.jurisdictions.some(
+        (j) => j.code === stored.jurisdictionCode,
+      );
+      setJurisdictionCodeRaw(
+        exists ? stored.jurisdictionCode : stored.jurisdictions[0].code,
+      );
+      setLocale(stored.locale);
+      setSpeed(stored.speed);
+      setMunicipalityOverride(stored.municipalityOverride);
+      setHeld(stored.held);
+    }
+    setHydrated(true);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveState({
+      version: 1,
+      jurisdictions,
+      agents,
+      jurisdictionCode,
+      locale,
+      speed,
+      municipalityOverride,
+      held,
+    });
+  }, [
+    hydrated,
+    jurisdictions,
+    agents,
+    jurisdictionCode,
+    locale,
+    speed,
+    municipalityOverride,
+    held,
+  ]);
+
+  /* --- Document language -------------------------------------------------
+     layout.tsx renders lang="fr-CA" because French is the default market, but
+     the locale is client state. Assistive technology and Lighthouse both read
+     this attribute, so it has to follow the active language rather than stay
+     pinned to the server-rendered default. */
+  useEffect(() => {
+    document.documentElement.lang =
+      locale === "fr" ? "fr-CA" : jurisdiction.country === "US" ? "en-US" : "en-CA";
+  }, [locale, jurisdiction.country]);
 
   /* --- The single clock ------------------------------------------------- */
   useEffect(() => {
