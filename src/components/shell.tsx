@@ -1,10 +1,11 @@
 "use client";
 
-import { Radio, Globe2, BarChart3, Code2 } from "lucide-react";
+import { Radio, Globe2, BarChart3, Code2, BookOpen } from "lucide-react";
 import { useStore, type View } from "@/lib/store";
 import { formatRate } from "@/lib/routing";
 import { Segmented } from "./ui";
 import { Simulator } from "./simulator";
+import { GuideBar } from "./guide-bar";
 import { Inspector } from "./inspector";
 import { JurisdictionPanel } from "./jurisdiction-panel";
 import { AttributionPanel } from "./attribution-panel";
@@ -28,6 +29,8 @@ export function Shell() {
     setJurisdictionCode,
     view,
     setView,
+    guideOpen,
+    openGuide,
   } = useStore();
 
   return (
@@ -152,9 +155,20 @@ export function Shell() {
             </h1>
             <p className="text-2xs text-ink-400 truncate">{t("app.context")}</p>
           </div>
-          <span className="font-mono text-2xs text-ink-400 tabular shrink-0 ml-3">
-            {jurisdiction.code} · {locale.toUpperCase()}
-          </span>
+          <div className="flex items-center gap-3 shrink-0 ml-3">
+            {!guideOpen && (
+              <button
+                onClick={openGuide}
+                className="inline-flex items-center gap-1.5 h-7 px-2 rounded-sm text-2xs font-medium text-ink-600 border border-ink-300 hover:bg-ink-50 hover:text-ink-900 transition-colors duration-150"
+              >
+                <BookOpen size={11} />
+                {t("guide.reopen")}
+              </button>
+            )}
+            <span className="font-mono text-2xs text-ink-400 tabular">
+              {jurisdiction.code} · {locale.toUpperCase()}
+            </span>
+          </div>
         </header>
 
         <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3 p-3 lg:p-4">
@@ -170,6 +184,8 @@ export function Shell() {
             </aside>
           )}
         </div>
+
+        <GuideBar />
       </div>
     </div>
   );

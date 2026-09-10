@@ -92,7 +92,9 @@
     "total": "Total",
     "journey": "One lead's journey",
     "best": "Best performer",
-    "worst": "Weakest performer"
+    "worst": "Weakest performer",
+    "journeyEmpty": "no closing yet",
+    "journeyHint": "Route a lead, have it accepted, then close the transaction. Its full journey appears here — carrying its own click id."
   },
   "journey": {
     "click": "Ad click",
@@ -107,21 +109,46 @@
     "showSource": "View source",
     "note": "Note"
   },
-  "scenario": {
-    "title": "Guided scenarios",
-    "intro": "Each scenario sets the board. You still pull the trigger.",
-    "run": "Run",
-    "no-response": {
-      "label": "The broker doesn't respond",
-      "blurb": "The deadline expires and the lead escalates itself to the next broker."
+  "guide": {
+    "youWrote": "You wrote",
+    "source": "your brief",
+    "step": "Step {n} / {total}",
+    "show": "Show me",
+    "next": "Next",
+    "skip": "Skip the guide",
+    "reopen": "Guide",
+    "done": "Done",
+    "finishedTitle": "All six requirements, demonstrated.",
+    "finishedBody": "Everything you just saw runs in the browser with no database. The code is in your repository.",
+    "french-default": {
+      "instruction": "This page loaded in French before you touched anything. Switch to English to confirm nothing is hard-coded.",
+      "outcome": "Both languages come from translation files. Spanish would be a third file."
     },
-    "at-capacity": {
-      "label": "Broker at full capacity",
-      "blurb": "The only broker covering the area is full, so the lead cannot be routed."
+    "sixty-seconds": {
+      "instruction": "Press “New inbound lead” and read the decision log.",
+      "outcome": "Licence, geography, capacity, language, then fair rotation — decided in under a millisecond."
+    },
+    "no-response": {
+      "instruction": "Run the scenario, then touch nothing. The countdown will expire.",
+      "outcome": "Nobody responded, so the lead reassigned itself to the next broker."
+    },
+    "capacity-override": {
+      "instruction": "Run the scenario: the only broker covering the area is full. Then take over with “Reassign manually”.",
+      "outcome": "The cap protected the broker, and the manual override put the lead back into routing."
     },
     "new-market": {
-      "label": "Open a new market",
-      "blurb": "Create Florida, then route a lead into it. With no deploy."
+      "instruction": "Create Florida, then return to the simulator and route a lead into it.",
+      "outcome": "New market, new currency, new language — no code, no deploy."
+    },
+    "attribution": {
+      "instruction": "Close the accepted lead, then open Attribution to watch cost per closing move.",
+      "outcome": "The ad click stayed attached all the way to the closing. Cost per closing is a calculation, not an estimate."
     }
+  },
+  "stage": {
+    "title": "File stage",
+    "next": "Next stage",
+    "close": "Close the transaction",
+    "closed": "Closed"
   }
 }

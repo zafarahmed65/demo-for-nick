@@ -1,5 +1,6 @@
 import type {
   Agent,
+  ExclusionCode,
   Jurisdiction,
   Lead,
   LocalizedText,
@@ -97,6 +98,7 @@ export function routeLead(
   }));
 
   const knockOut = (
+    code: ExclusionCode,
     predicate: (agent: Agent) => boolean,
     fr: string,
     en: string,
@@ -105,6 +107,7 @@ export function routeLead(
       if (candidate.eligible && predicate(candidate.agent)) {
         candidate.eligible = false;
         candidate.reason = { fr, en };
+        candidate.reasonCode = code;
       }
     }
   };
@@ -112,6 +115,7 @@ export function routeLead(
   // 1 — Licensing. A broker may only take leads in a jurisdiction they hold a
   //     licence in. This is a legal constraint, so it is applied first.
   knockOut(
+    "licence",
     (a) => !a.jurisdictions.includes(jurisdiction.code),
     `Non licencié en ${jurisdiction.code}`,
     `Not licensed in ${jurisdiction.code}`,
@@ -129,6 +133,7 @@ export function routeLead(
   // 2 — Geography. Empty coverage means the whole jurisdiction.
   const beforeGeo = countEligible(candidates);
   knockOut(
+    "geography",
     (a) => a.coverage.length > 0 && !a.coverage.includes(lead.municipality),
     `Ne couvre pas ${lead.municipality}`,
     `Does not cover ${lead.municipality}`,
@@ -148,6 +153,7 @@ export function routeLead(
   //     what stops the "top performer gets buried" failure mode.
   const beforeCap = countEligible(candidates);
   knockOut(
+    "capacity",
     (a) => a.activeFiles >= a.capacity,
     "Capacité atteinte",
     "At capacity",
@@ -173,6 +179,7 @@ export function routeLead(
   //     Quebec this is not a nicety, it is the default obligation.
   const beforeLang = countEligible(candidates);
   knockOut(
+    "language",
     (a) => !a.languages.includes(lead.locale),
     `Ne sert pas en ${lead.locale.toUpperCase()}`,
     `Does not serve in ${lead.locale.toUpperCase()}`,

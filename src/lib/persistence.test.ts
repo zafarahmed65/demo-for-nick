@@ -9,7 +9,7 @@ import { SEED_AGENTS } from "./seed";
  * window, blocked site data or an exceeded quota must degrade to seed state.
  */
 
-const KEY = "lead-engine.v2";
+const KEY = "lead-engine.v3";
 
 function stubStorage(impl: Partial<Storage>) {
   const store = { getItem: () => null, setItem: () => {}, removeItem: () => {}, ...impl };
@@ -19,7 +19,7 @@ function stubStorage(impl: Partial<Storage>) {
 
 function validState(): PersistedState {
   return {
-    version: 2,
+    version: 3,
     jurisdictions: [QUEBEC],
     agents: SEED_AGENTS,
     jurisdictionCode: "QC",
@@ -27,6 +27,13 @@ function validState(): PersistedState {
     speed: 4,
     municipalityOverride: null,
     held: [],
+    routedLeads: [],
+    closings: [],
+    guideDismissed: false,
+    guideStep: 0,
+    localeSwitched: false,
+    hasEscalated: false,
+    hasReassigned: false,
   };
 }
 
@@ -100,7 +107,7 @@ describe("rejecting untrustworthy data", () => {
   it("rejects malformed JSON", () => rejects("{not json"));
   it("rejects a null payload", () => rejects("null"));
   it("rejects a stale schema version", () =>
-    rejects(JSON.stringify({ ...validState(), version: 1 })));
+    rejects(JSON.stringify({ ...validState(), version: 2 })));
   it("rejects an empty jurisdiction list", () =>
     rejects(JSON.stringify({ ...validState(), jurisdictions: [] })));
   it("rejects an unsupported locale", () =>

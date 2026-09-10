@@ -98,11 +98,17 @@ export interface TraceEntry {
   batchIndex?: number;
 }
 
+/** Which rule knocked a broker out. Machine-readable so callers can act on it
+    — a manual override needs to know the difference between "at capacity"
+    (overridable) and "not licensed here" (not overridable). */
+export type ExclusionCode = "licence" | "geography" | "capacity" | "language";
+
 export interface RoutingCandidate {
   agent: Agent;
   eligible: boolean;
   /** Why this agent was filtered out, if they were. */
   reason?: LocalizedText;
+  reasonCode?: ExclusionCode;
 }
 
 export interface RoutingPlan {

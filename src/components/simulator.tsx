@@ -1,17 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  Play,
-  RotateCcw,
-  Check,
-  X,
-  ArrowRight,
-  TimerOff,
-  UserX,
-  Globe2,
-} from "lucide-react";
-import { SCENARIO_KEYS, type ScenarioKey } from "@/lib/scenarios";
+import { Play, RotateCcw, Check, X, ArrowRight, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatMoney } from "@/lib/routing";
 import { Panel, Button, Segmented, Badge, Avatar, Field, inputClass } from "./ui";
@@ -170,11 +160,21 @@ function AssignmentCard() {
     jurisdiction,
     held,
     locale,
+    advanceStage,
+    closeLead,
     t,
   } = useStore();
 
   if (phase.kind === "idle") {
-    return <ScenarioBoard />;
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-9 px-6">
+        <div className="size-9 rounded-full border border-dashed border-ink-300 grid place-items-center mb-3">
+          <Play size={14} className="text-ink-400" />
+        </div>
+        <p className="text-sm font-medium text-ink-700">{t("sim.empty")}</p>
+        <p className="text-xs text-ink-500 mt-1 max-w-[42ch]">{t("sim.emptyHint")}</p>
+      </div>
+    );
   }
 
   const lead = phase.kind === "awaiting" ? phase.state.lead : phase.lead;
@@ -206,6 +206,9 @@ function AssignmentCard() {
 
   if (phase.kind === "accepted") {
     const agent = agents.find((a) => a.id === phase.agentId);
+    const stages = jurisdiction.workflow;
+    const stage = stages[phase.stageIndex];
+    const closed = phase.stageIndex === stages.length - 1;
     return (
       <div className="animate-rise px-4 py-4 flex items-start gap-3">
         <div className="size-[64px] shrink-0 rounded-full border-2 border-ok-200 bg-ok-50 grid place-items-center">
@@ -227,6 +230,40 @@ function AssignmentCard() {
                 {t("sim.level")} {phase.level}
               </Badge>
             )}
+          </div>
+
+          {/* Stages come from this jurisdiction's configured workflow, so a
+              lead in Ontario walks Ontario's stages. */}
+          <div className="mt-3 pt-3 border-t border-[var(--hairline)]">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xs uppercase tracking-[0.07em] text-ink-400 font-medium">
+                {t("stage.title")}
+              </span>
+              <span className="font-mono text-2xs text-ink-400 tabular">
+                {phase.stageIndex + 1}/{stages.length}
+              </span>
+            </div>
+            <p className="text-xs text-ink-800 mt-1">{stage.label[locale]}</p>
+
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {closed ? (
+                <Badge tone="ok">
+                  <Check size={9} className="mr-1" />
+                  {t("stage.closed")}
+                </Badge>
+              ) : (
+                <>
+                  <Button size="sm" variant="secondary" onClick={advanceStage}>
+                    {t("stage.next")}
+                    <ChevronRight size={11} />
+                  </Button>
+                  <Button size="sm" variant="primary" onClick={closeLead}>
+                    <Check size={11} />
+                    {t("stage.close")}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -281,56 +318,6 @@ function AssignmentCard() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-const SCENARIO_ICON: Record<ScenarioKey, typeof TimerOff> = {
-  "no-response": TimerOff,
-  "at-capacity": UserX,
-  "new-market": Globe2,
-};
-
-/**
- * Shown whenever nothing is in flight. A cold visitor who presses the plain
- * trigger once will most likely see a broker accept in three seconds and learn
- * nothing; these put the interesting behaviour one click away instead.
- */
-function ScenarioBoard() {
-  const { runScenario, t } = useStore();
-  return (
-    <div className="px-4 py-4">
-      <div className="flex items-baseline gap-2.5 mb-0.5">
-        <h3 className="text-xs font-medium text-ink-800">{t("scenario.title")}</h3>
-        <span className="text-2xs text-ink-400">{t("scenario.intro")}</span>
-      </div>
-      <ul className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
-        {SCENARIO_KEYS.map((key) => {
-          const Icon = SCENARIO_ICON[key];
-          return (
-            <li key={key}>
-              <button
-                onClick={() => runScenario(key)}
-                className="group h-full w-full text-left p-3 rounded-md border border-[var(--hairline)] bg-ink-50 hover:bg-white hover:border-pine-300 transition-colors duration-150"
-              >
-                <span className="flex items-center gap-2">
-                  <Icon size={13} className="text-ink-400 group-hover:text-pine-600 transition-colors duration-150" />
-                  <span className="text-xs font-medium text-ink-900">
-                    {t(`scenario.${key}.label`)}
-                  </span>
-                </span>
-                <span className="block text-2xs text-ink-500 mt-1.5 leading-relaxed">
-                  {t(`scenario.${key}.blurb`)}
-                </span>
-                <span className="inline-flex items-center gap-1 text-2xs font-medium text-pine-700 mt-2">
-                  {t("scenario.run")}
-                  <ArrowRight size={10} />
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }

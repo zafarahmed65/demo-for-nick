@@ -12,11 +12,11 @@ the point is the engine, and the engine is what the brief asks about.
 
 ## What to look at, in order
 
-**0 — Or just press a scenario.** The simulator opens with three guided
-scenarios: a broker who does not respond, a broker at full capacity, and opening
-a new market. Each one sets the board and stops — you still pull the trigger.
-They exist because pressing the plain trigger once will most likely show a
-broker accepting in three seconds, which teaches you nothing about the system.
+**0 — Or follow the guide.** A bar along the bottom walks through six
+requirements from the brief, quoting each one and putting the thing that answers
+it one press away. It sets the board up and stops; you still pull every trigger.
+Each step is marked complete only when the event actually happens — the guide
+observes, it does not take your word for it.
 
 **1 — Watch a lead get routed and escalated.** Open the routing simulator, set
 demo speed to `6s`, press **Nouveau lead entrant**. The decision log prints with
@@ -120,6 +120,10 @@ escalation path can be demonstrated on demand.
 State persists in `localStorage`, so a market you add survives a reload —
 **Réinitialiser** puts it back to seed. That is per-browser, not a backend.
 
+Attribution is live: routing a lead adds to its campaign's lead count, and
+closing one moves that campaign's cost per closing. Seed figures are the
+historical baseline; your session adds to them.
+
 ## Running it
 
 ```bash
@@ -135,7 +139,7 @@ No environment variables, no services to configure.
 npm test
 ```
 
-27 tests across two suites, with no mocking of the engine itself — `routeLead`
+41 tests across three suites, with no mocking of the engine itself — `routeLead`
 is pure, so it can be pinned down directly.
 
 [`routing.test.ts`](src/lib/routing.test.ts) covers the four eligibility
@@ -149,6 +153,11 @@ one routes a jurisdiction invented at runtime, which turns the claim in
 [`persistence.test.ts`](src/lib/persistence.test.ts) covers the defensive paths:
 blocked storage, exceeded quota, malformed JSON, a stale schema version, and
 server-side rendering where there is no `window`.
+
+[`attribution.test.ts`](src/lib/attribution.test.ts) checks that closing a lead
+moves cost per closing by the arithmetically correct amount rather than merely
+changing it, that a routed lead counts toward cost per lead without counting as
+a closing, and that each guide step requires its own real event.
 
 The suites were checked by mutation — removing the capacity filter, forcing
 French plurals, leaking a French annotation into English, dropping the

@@ -3,6 +3,7 @@
 import { MousePointerClick, FileInput, Route, UserCheck, Home, BadgeCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SEED_CAMPAIGNS } from "@/lib/seed";
+import { campaignRows, campaignTotals } from "@/lib/attribution";
 import { formatMoney } from "@/lib/routing";
 import { Panel, Badge } from "./ui";
 
@@ -12,24 +13,14 @@ import { Panel, Badge } from "./ui";
  * click through to the closed transaction — not reconstructed afterwards.
  */
 export function AttributionPanel() {
-  const { jurisdiction, locale, t } = useStore();
+  const { jurisdiction, locale, routedLeads, closings, agents, t } = useStore();
 
-  const rows = SEED_CAMPAIGNS.map((c) => ({
-    ...c,
-    costPerLead: c.spend / c.leads,
-    costPerClosing: c.closings > 0 ? c.spend / c.closings : Infinity,
-  }));
+  // Seed figures are the historical baseline; this session adds to them, which
+  // is what lets cost-per-closing move while someone is watching it.
+  const rows = campaignRows(routedLeads, closings);
+  const totals = campaignTotals(rows);
 
-  const totals = rows.reduce(
-    (acc, r) => ({
-      spend: acc.spend + r.spend,
-      clicks: acc.clicks + r.clicks,
-      leads: acc.leads + r.leads,
-      closings: acc.closings + r.closings,
-    }),
-    { spend: 0, clicks: 0, leads: 0, closings: 0 },
-  );
-
+  const latest = closings.length > 0 ? closings[closings.length - 1] : null;
   const best = rows.reduce((a, b) => (a.costPerClosing <= b.costPerClosing ? a : b));
   const worst = rows.reduce((a, b) => (a.costPerClosing >= b.costPerClosing ? a : b));
   const money = (v: number) => formatMoney(v, jurisdiction, locale);
@@ -72,17 +63,37 @@ export function AttributionPanel() {
                   </td>
                   <Td>{money(row.spend)}</Td>
                   <Td muted>{row.clicks.toLocaleString(locale === "fr" ? "fr-CA" : "en-CA")}</Td>
-                  <Td muted>{row.leads}</Td>
-                  <Td>{row.closings}</Td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="font-mono text-xs tabular text-ink-500">
+                      {row.leads}
+                    </span>
+                    {row.sessionLeads > 0 && (
+                      <span className="ml-1.5 font-mono text-2xs tabular text-pine-700 font-medium">
+                        +{row.sessionLeads}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="font-mono text-xs tabular text-ink-800">
+                      {row.closings}
+                    </span>
+                    {row.sessionClosings > 0 && (
+                      <span className="ml-1.5 font-mono text-2xs tabular text-pine-700 font-medium">
+                        +{row.sessionClosings}
+                      </span>
+                    )}
+                  </td>
                   <Td muted>{money(row.costPerLead)}</Td>
                   <td className="px-4 py-2.5 text-right">
                     <span
-                      className={`font-mono text-xs tabular font-medium ${
-                        row.id === best.id
-                          ? "text-ok-700"
-                          : row.id === worst.id
-                            ? "text-danger-700"
-                            : "text-ink-800"
+                      className={`font-mono text-xs tabular font-medium transition-colors duration-300 ${
+                        row.sessionClosings > 0
+                          ? "text-pine-700"
+                          : row.id === best.id
+                            ? "text-ok-700"
+                            : row.id === worst.id
+                              ? "text-danger-700"
+                              : "text-ink-800"
                       }`}
                     >
                       {money(row.costPerClosing)}
@@ -110,95 +121,110 @@ export function AttributionPanel() {
         </div>
       </Panel>
 
-      <Panel title={t("attr.journey")} meta="LD-4823">
-        <ol className="px-4 py-4 flex flex-wrap items-stretch gap-0">
-          {(() => {
-            /* Dates and money are formatted from the active locale rather than
-               written out, so the chain reads correctly in both languages. */
-            const tag = locale === "fr" ? "fr-CA" : "en-CA";
-            const day = (iso: string) =>
-              new Intl.DateTimeFormat(tag, { day: "numeric", month: "short" }).format(
-                new Date(iso),
-              );
-            const time = (iso: string) =>
-              new Intl.DateTimeFormat(tag, {
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(new Date(iso));
+      <Panel
+        title={t("attr.journey")}
+        meta={latest ? latest.lead.id : t("attr.journeyEmpty")}
+      >
+        {latest ? (
+          <>
+            <ol className="px-4 py-4 flex flex-wrap items-stretch gap-0">
+              {(() => {
+                /* The real lead: its own click id, its own routing decision,
+                   the broker who actually took it, real timestamps. */
+                const tag = locale === "fr" ? "fr-CA" : "en-CA";
+                const stamp = (ms: number) =>
+                  new Intl.DateTimeFormat(tag, {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).format(new Date(ms));
+                const broker = agents.find((a) => a.id === latest.agentId);
+                const campaign = SEED_CAMPAIGNS.find(
+                  (c) => c.id === latest.lead.campaignId,
+                );
 
-            return [
-              {
-                icon: MousePointerClick,
-                key: "click",
-                detail: "gclid=Cj0KCQiA8…",
-                at: `${day("2025-08-12T19:04")} · ${time("2025-08-12T19:04")}`,
-              },
-              {
-                icon: FileInput,
-                key: "form",
-                detail: "utm_campaign=laval",
-                at: `${day("2025-08-12T19:06")} · ${time("2025-08-12T19:06")}`,
-              },
-              {
-                icon: Route,
-                key: "routed",
-                detail: "QC · Laval · 11 ms",
-                at: `${day("2025-08-12T19:06")} · ${time("2025-08-12T19:06")}`,
-              },
-              {
-                icon: UserCheck,
-                key: "accepted",
-                detail: `S. Gagnon · 41${locale === "fr" ? " s" : "s"}`,
-                at: `${day("2025-08-12T19:07")} · ${time("2025-08-12T19:07")}`,
-              },
-              {
-                icon: Home,
-                key: "listed",
-                detail: money(489_000),
-                at: day("2025-08-19T10:00"),
-              },
-              {
-                icon: BadgeCheck,
-                key: "closed",
-                detail: money(9_780),
-                at: day("2025-10-02T10:00"),
-              },
-            ].map((node, index, all) => {
-              const Icon = node.icon;
-              const last = index === all.length - 1;
-              return (
-                <li key={node.key} className="flex items-center min-w-0">
-                  <div className="min-w-[112px]">
-                    <div
-                      className={`size-7 rounded-full grid place-items-center border ${
-                        last
-                          ? "bg-pine-600 border-pine-600 text-white"
-                          : "bg-white border-ink-300 text-ink-500"
-                      }`}
-                    >
-                      <Icon size={13} />
-                    </div>
-                    <p className="text-2xs font-medium text-ink-800 mt-1.5">
-                      {t(`journey.${node.key}`)}
-                    </p>
-                    <p className="font-mono text-2xs text-ink-400 tabular truncate">
-                      {node.detail}
-                    </p>
-                    <p className="text-2xs text-ink-400">{node.at}</p>
-                  </div>
-                  {!last && (
-                    <div className="h-px w-5 bg-ink-300 shrink-0 mb-9 -ml-4 mr-1" />
-                  )}
-                </li>
-              );
-            });
-          })()}
-        </ol>
-        <p className="px-4 pb-3.5 text-2xs text-ink-500 max-w-[76ch]">
-          {locale === "fr"
-            ? "L'identifiant de campagne est porté par le lead à chaque étape. Aucune reconstruction a posteriori : le coût par transaction est une jointure, pas une estimation."
-            : "The campaign id is carried on the lead at every stage. Nothing is reconstructed after the fact — cost per closing is a join, not an estimate."}
-        </p>
+                return [
+                  {
+                    icon: MousePointerClick,
+                    key: "click",
+                    detail: `gclid=${latest.lead.gclid.slice(0, 14)}…`,
+                    at: stamp(latest.lead.createdAt),
+                  },
+                  {
+                    icon: FileInput,
+                    key: "form",
+                    detail: campaign?.name ?? latest.lead.campaignId,
+                    at: stamp(latest.lead.createdAt),
+                  },
+                  {
+                    icon: Route,
+                    key: "routed",
+                    detail: `${latest.lead.jurisdictionCode} · ${latest.lead.municipality} · ${latest.decisionMs.toFixed(1)} ms`,
+                    at: stamp(latest.lead.createdAt),
+                  },
+                  {
+                    icon: UserCheck,
+                    key: "accepted",
+                    detail: `${broker?.name ?? "—"} · ${(latest.acceptedAfterMs / 1000).toFixed(1)}${locale === "fr" ? " s" : "s"}`,
+                    at: stamp(latest.acceptedAt),
+                  },
+                  {
+                    icon: Home,
+                    key: "listed",
+                    detail: money(latest.lead.propertyValue),
+                    at: stamp(latest.acceptedAt),
+                  },
+                  {
+                    icon: BadgeCheck,
+                    key: "closed",
+                    detail: money(
+                      latest.lead.propertyValue * jurisdiction.commissionRate,
+                    ),
+                    at: stamp(latest.closedAt),
+                  },
+                ].map((node, index, all) => {
+                  const Icon = node.icon;
+                  const last = index === all.length - 1;
+                  return (
+                    <li key={node.key} className="flex items-center min-w-0">
+                      <div className="min-w-[124px]">
+                        <div
+                          className={`size-7 rounded-full grid place-items-center border ${
+                            last
+                              ? "bg-pine-600 border-pine-600 text-white"
+                              : "bg-white border-ink-300 text-ink-500"
+                          }`}
+                        >
+                          <Icon size={13} />
+                        </div>
+                        <p className="text-2xs font-medium text-ink-800 mt-1.5">
+                          {t(`journey.${node.key}`)}
+                        </p>
+                        <p className="font-mono text-2xs text-ink-400 tabular truncate">
+                          {node.detail}
+                        </p>
+                        <p className="text-2xs text-ink-400">{node.at}</p>
+                      </div>
+                      {!last && (
+                        <div className="h-px w-5 bg-ink-300 shrink-0 mb-9 -ml-4 mr-1" />
+                      )}
+                    </li>
+                  );
+                });
+              })()}
+            </ol>
+            <p className="px-4 pb-3.5 text-2xs text-ink-500 max-w-[76ch]">
+              {locale === "fr"
+                ? "L'identifiant de campagne est porté par le lead à chaque étape. Aucune reconstruction a posteriori : le coût par transaction est une jointure, pas une estimation."
+                : "The campaign id is carried on the lead at every stage. Nothing is reconstructed after the fact — cost per closing is a join, not an estimate."}
+            </p>
+          </>
+        ) : (
+          <p className="px-4 py-5 text-xs text-ink-500 max-w-[76ch]">
+            {t("attr.journeyHint")}
+          </p>
+        )}
       </Panel>
     </div>
   );

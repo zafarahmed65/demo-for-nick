@@ -20,6 +20,8 @@ import {
   type HeldLead,
   type HoldReason,
 } from "./persistence";
+import type { ClosedLead } from "./attribution";
+import { GUIDE_STEPS, type GuideFacts } from "./guide";
 import {
   FORCED_BY_SCENARIO,
   singleBrokerMunicipality,
@@ -60,7 +62,17 @@ interface Awaiting {
 type Phase =
   | { kind: "idle" }
   | { kind: "awaiting"; state: Awaiting }
-  | { kind: "accepted"; lead: Lead; agentId: string; level: number }
+  | {
+      kind: "accepted";
+      lead: Lead;
+      agentId: string;
+      level: number;
+      /** Position in this jurisdiction's configured workflow. */
+      stageIndex: number;
+      decisionMs: number;
+      acceptedAfterMs: number;
+      acceptedAt: number;
+    }
   | { kind: "held"; lead: Lead };
 
 interface StoreValue {
@@ -98,6 +110,24 @@ interface StoreValue {
   jurisdictionFormOpen: boolean;
   setJurisdictionFormOpen: (open: boolean) => void;
   runScenario: (key: ScenarioKey) => void;
+
+  /** Every lead created this session, for attribution. */
+  routedLeads: Lead[];
+  /** Leads that reached a terminal workflow stage. */
+  closings: ClosedLead[];
+  advanceStage: () => void;
+  closeLead: () => void;
+
+  /* --- Guided walkthrough --- */
+  guideOpen: boolean;
+  guideStep: number;
+  guideFacts: GuideFacts;
+  /** Steps the visitor has genuinely completed, in order. */
+  guideDone: boolean[];
+  openGuide: () => void;
+  dismissGuide: () => void;
+  goToStep: (index: number) => void;
+  showStep: () => void;
 }
 
 export type View = "simulator" | "jurisdictions" | "attribution";
@@ -149,7 +179,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>(SEED_JURISDICTIONS);
   const [jurisdictionCode, setJurisdictionCodeRaw] = useState("QC");
   // Quebec is the default market, so French is what renders on first paint.
-  const [locale, setLocale] = useState<Locale>("fr");
+  const [guideDismissed, setGuideDismissed] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
+  const [localeSwitched, setLocaleSwitched] = useState(false);
+  const [hasReassigned, setHasReassigned] = useState(false);
+  const [hasEscalated, setHasEscalated] = useState(false);
+  const [locale, setLocaleRaw] = useState<Locale>("fr");
+  const setLocale = useCallback((next: Locale) => {
+    setLocaleRaw(next);
+    setLocaleSwitched(true);
+  }, []);
   const [agents, setAgents] = useState<Agent[]>(SEED_AGENTS);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [trace, setTrace] = useState<TraceEntry[]>([]);
@@ -166,6 +205,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
      rather than state because a scenario sets it and immediately triggers a
      lead — a state update would not be visible to that same call. */
   const forcedRef = useRef<ForcedResponse[] | null>(null);
+  const [routedLeads, setRoutedLeads] = useState<Lead[]>([]);
+  const [closings, setClosings] = useState<ClosedLead[]>([]);
   const [now, setNow] = useState(() => Date.now());
 
   const jurisdiction = useMemo(
@@ -205,7 +246,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (code: string) => {
       setJurisdictionCodeRaw(code);
       const next = jurisdictions.find((j) => j.code === code);
-      if (next) setLocale(next.defaultLocale);
+      if (next) setLocaleRaw(next.defaultLocale);
       setMunicipalityOverride(null);
       commitPhase({ kind: "idle" });
       setTrace([]);
@@ -244,12 +285,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const trigger = useCallback(
-    (override?: string, keepScript = false) => {
+    (override?: string, keepScript = false, windowMsOverride?: number) => {
       if (!keepScript) forcedRef.current = null;
       const town = override ?? municipality;
       const lead = makeLead(jurisdiction.code, town, locale);
       const plan = routeLead(lead, jurisdiction, agents);
 
+      // Recorded the moment it exists — a lead counts toward cost-per-lead
+      // whether or not it ever closes.
+      setRoutedLeads((prev) => [...prev, lead]);
       setTrace(plan.steps.map((entry, index) => ({ ...entry, batchIndex: index })));
 
       if (plan.escalationOrder.length === 0) {
@@ -261,7 +305,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ]);
         return;
       }
-      assignTo(lead, plan, 0, slaMs);
+      assignTo(lead, plan, 0, windowMsOverride ?? slaMs);
     },
     [agents, assignTo, commitPhase, jurisdiction, locale, municipality, slaMs],
   );
@@ -269,9 +313,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const accept = useCallback(() => {
     const current = phaseRef.current;
     if (current.kind !== "awaiting") return;
-    const { lead, agentId, assignedAt, level } = current.state;
+    const { lead, agentId, assignedAt, level, plan } = current.state;
     const agent = agents.find((a) => a.id === agentId);
-    const elapsed = ((Date.now() - assignedAt) / 1000).toFixed(1);
+    const acceptedAfterMs = Date.now() - assignedAt;
+    const elapsed = (acceptedAfterMs / 1000).toFixed(1);
 
     pushTrace([
       {
@@ -293,8 +338,98 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           : a,
       ),
     );
-    commitPhase({ kind: "accepted", lead, agentId, level });
+    commitPhase({
+      kind: "accepted",
+      lead,
+      agentId,
+      level,
+      stageIndex: 1, // qualification — the lead is past "new" once accepted
+      decisionMs: plan.decisionMs,
+      acceptedAfterMs,
+      acceptedAt: Date.now(),
+    });
   }, [agents, commitPhase, pushTrace]);
+
+  /* --- Lead lifecycle ---------------------------------------------------
+     Stages come from the active jurisdiction's configured workflow, so a lead
+     in Ontario walks Ontario's stages. Reaching the terminal stage is what
+     turns a lead into a closing, which is what moves cost-per-closing. */
+
+  const recordClosing = useCallback(
+    (phase: Extract<Phase, { kind: "accepted" }>) => {
+      setClosings((prev) =>
+        prev.some((c) => c.lead.id === phase.lead.id)
+          ? prev
+          : [
+              ...prev,
+              {
+                lead: phase.lead,
+                agentId: phase.agentId,
+                level: phase.level,
+                decisionMs: phase.decisionMs,
+                acceptedAfterMs: phase.acceptedAfterMs,
+                acceptedAt: phase.acceptedAt,
+                closedAt: Date.now(),
+              },
+            ],
+      );
+    },
+    [],
+  );
+
+  const advanceStage = useCallback(() => {
+    const current = phaseRef.current;
+    if (current.kind !== "accepted") return;
+    const stages = jurisdiction.workflow;
+    const next = Math.min(current.stageIndex + 1, stages.length - 1);
+    if (next === current.stageIndex) return;
+
+    pushTrace([
+      {
+        id: `stage-${current.lead.id}-${next}`,
+        at: Date.now(),
+        kind: next === stages.length - 1 ? "accept" : "resolve",
+        message: {
+          fr: `Étape → ${stages[next].label.fr}`,
+          en: `Stage → ${stages[next].label.en}`,
+        },
+        annotation: { fr: `${next + 1}/${stages.length}`, en: `${next + 1}/${stages.length}` },
+      },
+    ]);
+
+    const advanced = { ...current, stageIndex: next };
+    if (next === stages.length - 1) recordClosing(advanced);
+    commitPhase(advanced);
+  }, [commitPhase, jurisdiction.workflow, pushTrace, recordClosing]);
+
+  /** Jump straight to the terminal stage. Seven clicks is not a demo. */
+  const closeLead = useCallback(() => {
+    const current = phaseRef.current;
+    if (current.kind !== "accepted") return;
+    const stages = jurisdiction.workflow;
+    const last = stages.length - 1;
+    if (current.stageIndex === last) return;
+
+    pushTrace([
+      {
+        id: `stage-${current.lead.id}-${last}`,
+        at: Date.now(),
+        kind: "accept",
+        message: {
+          fr: `Étape → ${stages[last].label.fr}`,
+          en: `Stage → ${stages[last].label.en}`,
+        },
+        annotation: {
+          fr: `campagne ${current.lead.campaignId}`,
+          en: `campaign ${current.lead.campaignId}`,
+        },
+      },
+    ]);
+
+    const closed = { ...current, stageIndex: last };
+    recordClosing(closed);
+    commitPhase(closed);
+  }, [commitPhase, jurisdiction.workflow, pushTrace, recordClosing]);
 
   /** Shared by an explicit decline and by an SLA breach. */
   const advance = useCallback(
@@ -302,12 +437,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const current = phaseRef.current;
       if (current.kind !== "awaiting") return;
 
-      const { lead, plan, level, agentId } = current.state;
+      const { lead, plan, level, agentId, deadline, assignedAt } = current.state;
+      // Preserve whatever window this lead was assigned under, so a scenario's
+      // compressed countdown stays compressed through every escalation.
+      const windowMs = deadline - assignedAt;
       const agent = agents.find((a) => a.id === agentId);
       const nextLevel = level + 1;
       const nextAgent = plan.escalationOrder[nextLevel];
       const exhausted = !nextAgent || nextLevel > jurisdiction.escalationLevels;
 
+      setHasEscalated(true);
       pushTrace([
         {
           id: `esc-${lead.id}-${level}-${reason}`,
@@ -380,14 +519,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           level: nextLevel,
           agentId: nextAgent.id,
           assignedAt: at,
-          deadline: at + slaMs,
+          deadline: at + windowMs,
           autoAcceptAt: willAccept
-            ? at + slaMs * (0.3 + Math.random() * 0.4)
+            ? at + windowMs * (0.3 + Math.random() * 0.4)
             : null,
         },
       });
     },
-    [agents, commitPhase, jurisdiction.escalationLevels, pushTrace, slaMs],
+    [agents, commitPhase, jurisdiction.escalationLevels, pushTrace],
   );
 
   const decline = useCallback(() => advance("decline"), [advance]);
@@ -397,10 +536,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setTrace([]);
     setHeld([]);
     setAgents(SEED_AGENTS);
+    setRoutedLeads([]);
+    setClosings([]);
+    setLocaleSwitched(false);
+    setHasReassigned(false);
+    setHasEscalated(false);
+    setGuideStep(0);
+    setGuideDismissed(false);
     setMunicipalityOverride(null);
     setJurisdictions(SEED_JURISDICTIONS);
     setJurisdictionCodeRaw("QC");
-    setLocale("fr");
+    setLocaleRaw("fr");
     // Otherwise the next reload would restore what was just reset.
     clearState();
   }, [commitPhase]);
@@ -426,21 +572,62 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (plan.escalationOrder.length === 0) {
+        /* "Full manual override" means exactly this: an administrator can push
+           a lead past the capacity cap. Licence and geography are legal and
+           practical constraints and stay non-negotiable; a full desk is a
+           judgement call, so it is the one rule a human may overrule. */
+        const overridable = plan.candidates
+          .filter(
+            (c) =>
+              c.reasonCode === "capacity" &&
+              c.agent.languages.includes(entry.lead.locale),
+          )
+          .map((c) => c.agent)
+          .sort((a, b) => a.activeFiles / a.capacity - b.activeFiles / b.capacity);
+
+        if (overridable.length === 0) {
+          pushTrace([
+            {
+              id: `re-fail-${entry.lead.id}-${Date.now()}`,
+              at: Date.now(),
+              kind: "hold",
+              message: {
+                fr: "Aucune dérogation possible — licence ou territoire manquant",
+                en: "No override available — licence or territory missing",
+              },
+            },
+          ]);
+          return;
+        }
+
+        const target = overridable[0];
         pushTrace([
           {
-            id: `re-fail-${entry.lead.id}-${Date.now()}`,
+            id: `re-override-${entry.lead.id}-${Date.now()}`,
             at: Date.now(),
-            kind: "hold",
+            kind: "assign",
             message: {
-              fr: "Toujours aucun courtier admissible — le lead reste en file",
-              en: "Still no eligible broker — the lead stays in the queue",
+              fr: `Dérogation manuelle → ${target.name} (plafond ${target.capacity} outrepassé)`,
+              en: `Manual override → ${target.name} (cap of ${target.capacity} bypassed)`,
             },
+            annotation: { fr: "admin", en: "admin" },
+            agentId: target.id,
           },
         ]);
+        setHeld((prev) => prev.filter((h) => h.lead.id !== leadId));
+        setHasReassigned(true);
+        forcedRef.current = null;
+        assignTo(
+          entry.lead,
+          { ...plan, escalationOrder: [target] },
+          0,
+          slaMs,
+        );
         return;
       }
 
       setHeld((prev) => prev.filter((h) => h.lead.id !== leadId));
+      setHasReassigned(true);
       forcedRef.current = null;
       assignTo(entry.lead, plan, 0, slaMs);
     },
@@ -461,12 +648,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       setView("simulator");
       // Compressed SLA, or the visitor waits a full minute for the payoff.
-      setSpeed(10);
+      const scenarioSpeed = 10;
+      setSpeed(scenarioSpeed);
+      // setSpeed will not have been applied by the time trigger runs, so the
+      // window is passed explicitly rather than read from a stale slaMs.
+      const scenarioWindowMs = Math.round(
+        (jurisdiction.slaSeconds * 1000) / scenarioSpeed,
+      );
 
       if (key === "no-response") {
         forcedRef.current = FORCED_BY_SCENARIO["no-response"] ?? null;
         setMunicipalityOverride(null); // busiest town — deepest bench
-        trigger(undefined, true);
+        trigger(undefined, true, scenarioWindowMs);
         return;
       }
 
@@ -496,6 +689,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     [agents, commitPhase, jurisdiction, locale, trigger],
   );
+
+  /* --- Guided walkthrough ------------------------------------------------
+     Facts are derived from state the store already holds, so a step can only
+     be marked done because the thing genuinely happened. */
+  const guideFacts: GuideFacts = useMemo(
+    () => ({
+      localeSwitched,
+      hasRouted: routedLeads.length > 0,
+      hasEscalated,
+      hasReassigned,
+      hasRuntimeMarket: jurisdictions.some((j) => j.createdAtRuntime),
+      hasClosing: closings.length > 0,
+    }),
+    [closings.length, hasEscalated, hasReassigned, jurisdictions, localeSwitched, routedLeads.length],
+  );
+
+  const guideDone = useMemo(
+    () => GUIDE_STEPS.map((step) => step.isDone(guideFacts)),
+    [guideFacts],
+  );
+
+  const openGuide = useCallback(() => setGuideDismissed(false), []);
+  const dismissGuide = useCallback(() => setGuideDismissed(true), []);
+  const goToStep = useCallback((index: number) => {
+    setGuideStep(Math.max(0, Math.min(index, GUIDE_STEPS.length - 1)));
+  }, []);
+
+  /** Take the visitor to this step's view and run its scenario, if it has one. */
+  const showStep = useCallback(() => {
+    const step = GUIDE_STEPS[guideStep];
+    if (!step) return;
+    setView(step.view);
+    if (step.scenario) runScenario(step.scenario);
+  }, [guideStep, runScenario]);
 
   const addJurisdiction = useCallback((input: NewJurisdictionInput) => {
     const preset = WORKFLOW_PRESETS[input.preset] ?? WORKFLOW_PRESETS["ca-standard"];
@@ -551,7 +778,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setJurisdictions((prev) => [...prev, created]);
     setAgents((prev) => [...prev, ...roster]);
     setJurisdictionCodeRaw(created.code);
-    setLocale(created.defaultLocale);
+    setLocaleRaw(created.defaultLocale);
     setMunicipalityOverride(null);
     commitPhase({ kind: "idle" });
     setTrace([]);
@@ -578,10 +805,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setJurisdictionCodeRaw(
         exists ? stored.jurisdictionCode : stored.jurisdictions[0].code,
       );
-      setLocale(stored.locale);
+      setLocaleRaw(stored.locale);
       setSpeed(stored.speed);
       setMunicipalityOverride(stored.municipalityOverride);
       setHeld(stored.held);
+      setRoutedLeads(stored.routedLeads);
+      setClosings(stored.closings);
+      setGuideDismissed(stored.guideDismissed);
+      setGuideStep(stored.guideStep);
+      setLocaleSwitched(stored.localeSwitched);
+      setHasEscalated(stored.hasEscalated);
+      setHasReassigned(stored.hasReassigned);
     }
     setHydrated(true);
   }, []);
@@ -590,7 +824,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     saveState({
-      version: 2,
+      version: 3,
       jurisdictions,
       agents,
       jurisdictionCode,
@@ -598,6 +832,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       speed,
       municipalityOverride,
       held,
+      routedLeads,
+      closings,
+      guideDismissed,
+      guideStep,
+      localeSwitched,
+      hasEscalated,
+      hasReassigned,
     });
   }, [
     hydrated,
@@ -608,6 +849,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     speed,
     municipalityOverride,
     held,
+    routedLeads,
+    closings,
+    guideDismissed,
+    guideStep,
+    localeSwitched,
+    hasEscalated,
+    hasReassigned,
   ]);
 
   /* --- Document language -------------------------------------------------
@@ -665,6 +913,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     jurisdictionFormOpen,
     setJurisdictionFormOpen,
     runScenario,
+    routedLeads,
+    closings,
+    advanceStage,
+    closeLead,
+    guideOpen: !guideDismissed,
+    guideStep,
+    guideFacts,
+    guideDone,
+    openGuide,
+    dismissGuide,
+    goToStep,
+    showStep,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

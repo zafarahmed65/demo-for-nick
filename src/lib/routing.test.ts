@@ -244,3 +244,35 @@ describe("scenario helpers", () => {
     expect(singleBrokerMunicipality(QUEBEC, everywhere)).toBeNull();
   });
 });
+
+describe("exclusion codes", () => {
+  it("labels why each broker was knocked out, so an override can act on it", () => {
+    const plan = routeLead(lead({ locale: "fr" }), QUEBEC, [
+      agent({ id: "wrong-province", jurisdictions: ["ON"] }),
+      agent({ id: "wrong-town", coverage: ["Gatineau"] }),
+      agent({ id: "full", activeFiles: 10, capacity: 10 }),
+      agent({ id: "wrong-language", languages: ["en"] }),
+      agent({ id: "eligible" }),
+    ]);
+    const codes = Object.fromEntries(
+      plan.candidates.map((c) => [c.agent.id, c.reasonCode ?? "eligible"]),
+    );
+    expect(codes).toEqual({
+      "wrong-province": "licence",
+      "wrong-town": "geography",
+      full: "capacity",
+      "wrong-language": "language",
+      eligible: "eligible",
+    });
+  });
+
+  it("marks a capacity exclusion as such even when nobody is eligible", () => {
+    // This is the case a manual override has to recognise: the broker is
+    // licensed and covers the town, and is only excluded by a full desk.
+    const plan = routeLead(lead(), QUEBEC, [
+      agent({ id: "solo", coverage: ["Laval"], activeFiles: 8, capacity: 8 }),
+    ]);
+    expect(plan.escalationOrder).toHaveLength(0);
+    expect(plan.candidates[0].reasonCode).toBe("capacity");
+  });
+});
