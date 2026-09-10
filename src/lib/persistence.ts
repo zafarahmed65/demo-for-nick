@@ -42,13 +42,6 @@ export interface PersistedState {
   /** Session activity, so attribution survives a reload like everything else. */
   routedLeads: Lead[];
   closings: ClosedLead[];
-  /** Whether the guided walkthrough has been dismissed or finished. */
-  guideDismissed: boolean;
-  guideStep: number;
-  /** Facts a step's completion depends on that are not otherwise recoverable
-      from state. Without these, reloading mid-guide silently un-ticks steps
-      the visitor genuinely completed. */
-  localeSwitched: boolean;
   hasEscalated: boolean;
   hasReassigned: boolean;
 }
@@ -102,9 +95,6 @@ function isValid(value: unknown): value is PersistedState {
     Array.isArray(candidate.held) &&
     Array.isArray(candidate.routedLeads) &&
     Array.isArray(candidate.closings) &&
-    typeof candidate.guideDismissed === "boolean" &&
-    typeof candidate.guideStep === "number" &&
-    typeof candidate.localeSwitched === "boolean" &&
     typeof candidate.hasEscalated === "boolean" &&
     typeof candidate.hasReassigned === "boolean" &&
     typeof candidate.jurisdictionCode === "string" &&

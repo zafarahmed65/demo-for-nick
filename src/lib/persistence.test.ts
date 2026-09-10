@@ -29,9 +29,6 @@ function validState(): PersistedState {
     held: [],
     routedLeads: [],
     closings: [],
-    guideDismissed: false,
-    guideStep: 0,
-    localeSwitched: false,
     hasEscalated: false,
     hasReassigned: false,
   };

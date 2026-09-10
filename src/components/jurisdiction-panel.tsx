@@ -41,7 +41,7 @@ export function JurisdictionPanel() {
           </Button>
         }
       >
-        <p className="px-4 pt-3 pb-3 text-xs text-ink-600 leading-relaxed max-w-[76ch]">
+        <p className="px-5 pb-4 text-small text-ink-500 leading-relaxed max-w-[76ch]">
           {t("jur.lede")}
         </p>
 
@@ -71,7 +71,7 @@ export function JurisdictionPanel() {
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className={`font-mono text-2xs font-semibold px-1.5 h-[18px] inline-flex items-center rounded-xs ${
+                      className={`font-mono text-micro font-semibold px-1.5 h-[18px] inline-flex items-center rounded-xs ${
                         active
                           ? "bg-pine-600 text-white"
                           : "bg-ink-150 text-ink-600"
@@ -79,7 +79,7 @@ export function JurisdictionPanel() {
                     >
                       {j.code}
                     </span>
-                    <span className="text-xs font-medium text-ink-900 truncate">
+                    <span className="text-small font-medium text-ink-900 truncate">
                       {j.name[locale]}
                     </span>
                     {active && <Check size={12} className="text-pine-600 ml-auto" />}
@@ -119,18 +119,18 @@ export function JurisdictionPanel() {
         <Panel title={t("jur.workflow")} meta={jurisdiction.code}>
           <ol className="divide-y divide-[var(--hairline)]">
             {jurisdiction.workflow.map((stage, index) => (
-              <li key={stage.key} className="px-4 py-2 flex items-start gap-2.5">
-                <span className="font-mono text-2xs text-ink-400 tabular pt-[3px] w-4 shrink-0">
+              <li key={stage.key} className="px-5 py-2.5 flex items-start gap-3">
+                <span className="font-mono text-micro text-ink-400 tabular pt-[3px] w-4 shrink-0">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs text-ink-800">{stage.label[locale]}</p>
+                  <p className="text-small text-ink-800">{stage.label[locale]}</p>
                   {stage.requiredDocuments.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {stage.requiredDocuments.map((doc) => (
                         <li
                           key={doc.en}
-                          className="flex items-center gap-1.5 text-2xs text-ink-500"
+                          className="flex items-center gap-1.5 text-micro text-ink-500"
                         >
                           <FileText size={10} className="shrink-0 text-ink-400" />
                           {doc[locale]}
@@ -148,25 +148,25 @@ export function JurisdictionPanel() {
           <Panel title={t("jur.terminology")}>
             <dl className="divide-y divide-[var(--hairline)]">
               {Object.entries(jurisdiction.terminology).map(([key, text]) => (
-                <div key={key} className="px-4 py-1.5 flex items-baseline gap-3">
-                  <dt className="font-mono text-2xs text-ink-400 w-[124px] shrink-0">
+                <div key={key} className="px-5 py-2 flex items-baseline gap-3">
+                  <dt className="font-mono text-micro text-ink-400 w-[124px] shrink-0">
                     {key}
                   </dt>
-                  <dd className="text-xs text-ink-800">{text[locale]}</dd>
+                  <dd className="text-small text-ink-800">{text[locale]}</dd>
                 </div>
               ))}
             </dl>
           </Panel>
 
           <Panel title={t("jur.seller")}>
-            <div className="px-4 py-3">
-              <p className="text-2xs text-ink-500">
+            <div className="px-5 pb-5">
+              <p className="text-micro text-ink-500">
                 {t("jur.savingsOn")}{" "}
                 <span className="font-mono tabular text-ink-700">
                   {formatMoney(SAMPLE_PROPERTY, jurisdiction, locale)}
                 </span>
               </p>
-              <p className="text-2xl font-mono tabular text-pine-700 mt-1 tracking-tight">
+              <p className="text-display font-mono tabular text-pine-700 mt-1 tracking-tight">
                 {formatMoney(savings, jurisdiction, locale)}
               </p>
               <div className="flex gap-4 mt-2">
@@ -192,7 +192,7 @@ export function JurisdictionPanel() {
           </Panel>
 
           <Panel title={t("jur.disclosure")}>
-            <p className="px-4 py-3 text-2xs text-ink-600 leading-relaxed">
+            <p className="px-5 pb-5 text-small text-ink-500 leading-relaxed">
               {jurisdiction.legalDisclosure[locale]}
             </p>
           </Panel>
@@ -213,9 +213,9 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <dt className="text-2xs text-ink-400">{label}</dt>
+      <dt className="text-micro text-ink-400">{label}</dt>
       <dd
-        className={`font-mono text-2xs tabular ${
+        className={`font-mono text-micro tabular ${
           accent ? "text-pine-700 font-medium" : "text-ink-600"
         }`}
       >
@@ -236,9 +236,9 @@ function Stat({
 }) {
   return (
     <div>
-      <p className="text-2xs text-ink-400">{label}</p>
+      <p className="text-micro text-ink-400">{label}</p>
       <p
-        className={`font-mono text-xs tabular ${
+        className={`font-mono text-small tabular ${
           accent ? "text-pine-700" : "text-ink-600 line-through decoration-ink-300"
         }`}
       >
@@ -273,7 +273,7 @@ function AddJurisdictionForm({
 
   return (
     <form
-      className="px-4 pb-4 pt-1 animate-rise"
+      className="px-5 pb-5 animate-rise"
       onSubmit={(event) => {
         event.preventDefault();
         onCreate({

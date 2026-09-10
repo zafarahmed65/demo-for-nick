@@ -109,42 +109,6 @@
     "showSource": "Voir le code source",
     "note": "Note"
   },
-  "guide": {
-    "youWrote": "Vous avez écrit",
-    "source": "votre appel d'offres",
-    "step": "Étape {n} / {total}",
-    "show": "Montrer",
-    "next": "Suivant",
-    "skip": "Passer le guide",
-    "reopen": "Guide",
-    "done": "Fait",
-    "finishedTitle": "Les six exigences, démontrées.",
-    "finishedBody": "Tout ce que vous venez de voir tourne dans le navigateur, sans base de données. Le code est dans votre dépôt.",
-    "french-default": {
-      "instruction": "Cette page s'est chargée en français avant que vous ne touchiez à quoi que ce soit. Basculez vers English pour vérifier que rien n'est codé en dur.",
-      "outcome": "Les deux langues viennent de fichiers de traduction. L'espagnol serait un troisième fichier."
-    },
-    "sixty-seconds": {
-      "instruction": "Appuyez sur « Nouveau lead entrant » et lisez le journal de décision.",
-      "outcome": "Licence, géographie, capacité, langue, puis rotation équitable — décidé en moins d'une milliseconde."
-    },
-    "no-response": {
-      "instruction": "Lancez le scénario, puis ne touchez à rien. Le compte à rebours va expirer.",
-      "outcome": "Personne n'a répondu : le lead s'est réattribué tout seul au courtier suivant."
-    },
-    "capacity-override": {
-      "instruction": "Lancez le scénario : le seul courtier du secteur est plein. Puis reprenez la main avec « Réattribuer manuellement ».",
-      "outcome": "Le plafond a protégé le courtier, et la reprise manuelle a relancé l'acheminement."
-    },
-    "new-market": {
-      "instruction": "Créez la Floride, puis revenez au simulateur et acheminez-y un lead.",
-      "outcome": "Nouveau marché, nouvelle devise, nouvelle langue — aucune ligne de code, aucun déploiement."
-    },
-    "attribution": {
-      "instruction": "Concluez le lead accepté, puis ouvrez Attribution pour voir bouger le coût par transaction.",
-      "outcome": "Le clic publicitaire est resté attaché jusqu'à la transaction. Le coût par transaction est un calcul, pas une estimation."
-    }
-  },
   "stage": {
     "title": "Étape du dossier",
     "next": "Étape suivante",

@@ -48,7 +48,7 @@ function CountdownRing({ ratio, seconds }: { ratio: number; seconds: number }) {
       </svg>
       <div className="absolute inset-0 grid place-items-center">
         <span
-          className="font-mono text-md font-medium tabular"
+          className="font-mono text-body font-medium tabular"
           style={{ color: tone }}
         >
           {seconds}
@@ -93,19 +93,19 @@ function TraceLog() {
     <Panel
       title={t("trace.title")}
       meta={t("trace.subtitle")}
-      className="flex-1 min-h-0 flex flex-col"
-      bodyClassName="flex-1 min-h-0"
+      className="xl:flex-1 xl:min-h-0 flex flex-col"
+      bodyClassName="flex-1 min-h-0 min-h-[260px] xl:min-h-0"
     >
       <div
         ref={scroller}
-        className="h-full overflow-y-auto scroll-slim px-3 py-2.5"
+        className="h-full overflow-y-auto scroll-slim px-5 pb-4"
       >
         {trace.length === 0 ? (
-          <p className="font-mono text-2xs text-ink-400 px-1 py-1">
+          <p className="font-mono text-micro text-ink-400 px-1 py-1">
             — {t("sim.empty")}
           </p>
         ) : (
-          <ol className="space-y-[3px]">
+          <ol className="space-y-1">
             {trace.map((entry) => {
               const style = KIND_STYLE[entry.kind];
               /* Steps that arrived together fan in one after another. */
@@ -113,26 +113,26 @@ function TraceLog() {
               return (
                 <li
                   key={entry.id}
-                  className={`animate-trace-in flex items-start gap-2.5 px-1 py-[3px] rounded-xs ${
+                  className={`animate-trace-in flex items-start gap-3 px-2 py-1 -mx-2 rounded-sm ${
                     entry.kind === "escalate" || entry.kind === "hold"
                       ? "animate-beat"
                       : ""
                   }`}
                   style={{ animationDelay: `${delay}ms` }}
                 >
-                  <span className="font-mono text-2xs text-ink-400 tabular pt-[1px] shrink-0">
+                  <span className="font-mono text-micro text-ink-400 tabular pt-[2px] shrink-0">
                     {stamp(entry.at)}
                   </span>
                   <span
-                    className={`mt-[6px] size-[5px] rounded-full shrink-0 ${style.dot}`}
+                    className={`mt-[7px] size-[6px] rounded-full shrink-0 ${style.dot}`}
                   />
                   <span
-                    className={`font-mono text-2xs leading-[18px] ${style.text} flex-1 min-w-0`}
+                    className={`font-mono text-micro leading-5 ${style.text} flex-1 min-w-0`}
                   >
                     {entry.message[locale]}
                   </span>
                   {entry.annotation && (
-                    <span className="font-mono text-2xs text-ink-400 tabular shrink-0 pt-[1px]">
+                    <span className="font-mono text-micro text-ink-400 tabular shrink-0 pt-[1px]">
                       {entry.annotation[locale]}
                     </span>
                   )}
@@ -167,12 +167,11 @@ function AssignmentCard() {
 
   if (phase.kind === "idle") {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-9 px-6">
-        <div className="size-9 rounded-full border border-dashed border-ink-300 grid place-items-center mb-3">
-          <Play size={14} className="text-ink-400" />
-        </div>
-        <p className="text-sm font-medium text-ink-700">{t("sim.empty")}</p>
-        <p className="text-xs text-ink-500 mt-1 max-w-[42ch]">{t("sim.emptyHint")}</p>
+      <div className="flex flex-col items-center justify-center text-center py-14 px-6">
+        <p className="text-title text-ink-900">{t("sim.empty")}</p>
+        <p className="text-small text-ink-500 mt-1.5 max-w-[46ch]">
+          {t("sim.emptyHint")}
+        </p>
       </div>
     );
   }
@@ -188,13 +187,13 @@ function AssignmentCard() {
         </div>
         <div className="min-w-0">
           <Badge tone="danger">{t("hold.title")}</Badge>
-          <p className="text-md font-medium text-ink-900 mt-1.5">
+          <p className="text-title font-medium text-ink-900 mt-2">
             {lead.sellerName} · {lead.municipality}
           </p>
-          <p className="text-xs text-ink-500 mt-0.5 font-mono tabular">
+          <p className="text-small text-ink-500 mt-0.5 font-mono tabular">
             {lead.id} · {money}
           </p>
-          <p className="text-xs text-danger-700 mt-2">
+          <p className="text-small text-danger-700 mt-2">
             {held.find((h) => h.lead.id === lead.id)?.reason === "unrouted"
               ? t("hold.unrouted")
               : t("hold.reason", { levels: jurisdiction.escalationLevels })}
@@ -216,15 +215,15 @@ function AssignmentCard() {
         </div>
         <div className="min-w-0">
           <Badge tone="ok">{t("journey.accepted")}</Badge>
-          <p className="text-md font-medium text-ink-900 mt-1.5">
+          <p className="text-title font-medium text-ink-900 mt-2">
             {lead.sellerName} · {lead.municipality}
           </p>
-          <p className="text-xs text-ink-500 mt-0.5 font-mono tabular">
+          <p className="text-small text-ink-500 mt-0.5 font-mono tabular">
             {lead.id} · {money}
           </p>
           <div className="flex items-center gap-2 mt-2.5">
             <Avatar initials={agent?.initials ?? "?"} tone="accent" />
-            <span className="text-xs text-ink-700">{agent?.name}</span>
+            <span className="text-small text-ink-700">{agent?.name}</span>
             {phase.level > 0 && (
               <Badge tone="warn">
                 {t("sim.level")} {phase.level}
@@ -236,14 +235,14 @@ function AssignmentCard() {
               lead in Ontario walks Ontario's stages. */}
           <div className="mt-3 pt-3 border-t border-[var(--hairline)]">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xs uppercase tracking-[0.07em] text-ink-400 font-medium">
+              <span className="text-micro uppercase tracking-[0.07em] text-ink-400 font-medium">
                 {t("stage.title")}
               </span>
-              <span className="font-mono text-2xs text-ink-400 tabular">
+              <span className="font-mono text-micro text-ink-400 tabular">
                 {phase.stageIndex + 1}/{stages.length}
               </span>
             </div>
-            <p className="text-xs text-ink-800 mt-1">{stage.label[locale]}</p>
+            <p className="text-small text-ink-800 mt-1">{stage.label[locale]}</p>
 
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               {closed ? (
@@ -278,7 +277,7 @@ function AssignmentCard() {
   const tight = ratio <= 0.25;
 
   return (
-    <div className="animate-rise px-4 py-4 flex items-start gap-3.5">
+    <div className="animate-rise px-5 py-5 flex items-start gap-5">
       <CountdownRing ratio={ratio} seconds={seconds} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -291,18 +290,18 @@ function AssignmentCard() {
             </Badge>
           )}
         </div>
-        <p className="text-md font-medium text-ink-900 mt-1.5">
+        <p className="text-title font-medium text-ink-900 mt-2">
           {lead.sellerName} · {lead.municipality}
         </p>
-        <p className="text-xs text-ink-500 mt-0.5 font-mono tabular">
+        <p className="text-small text-ink-500 mt-0.5 font-mono tabular">
           {lead.id} · {money}
         </p>
 
-        <div className="flex items-center gap-2 mt-2.5">
+        <div className="flex items-center gap-2.5 mt-4">
           <Avatar initials={agent?.initials ?? "?"} tone="accent" />
           <div className="min-w-0">
-            <p className="text-xs text-ink-800 leading-tight">{agent?.name}</p>
-            <p className="text-2xs text-ink-500 leading-tight">
+            <p className="text-small text-ink-800 leading-tight">{agent?.name}</p>
+            <p className="text-micro text-ink-500 leading-tight">
               {t("sim.assignedTo")}
             </p>
           </div>
@@ -337,7 +336,7 @@ export function Simulator() {
   } = useStore();
 
   return (
-    <div className="flex flex-col gap-3 min-h-0 flex-1">
+    <div className="flex flex-col gap-4 xl:min-h-0 xl:flex-1">
       <Panel
         title={t("sim.title")}
         action={
@@ -359,13 +358,9 @@ export function Simulator() {
           </div>
         }
       >
-        <p className="px-4 pt-3 text-xs text-ink-600 leading-relaxed max-w-[76ch]">
-          {t("sim.lede")}
-        </p>
-
-        <div className="px-4 pt-3">
-          <div className="flex items-end gap-3 flex-wrap">
-            <div className="w-[180px]">
+        <div className="px-5 pb-4">
+          <div className="flex items-end gap-4 flex-wrap">
+            <div className="w-[190px]">
               <Field label={t("sim.municipality")}>
                 <select
                   className={inputClass}
@@ -392,13 +387,10 @@ export function Simulator() {
                 ]}
               />
             </div>
-            <p className="text-2xs text-ink-400 pb-1.5 flex-1 min-w-[180px]">
-              {t("sim.speedHint", { sla: jurisdiction.slaSeconds })}
-            </p>
           </div>
         </div>
 
-        <div className="mt-3 border-t border-[var(--hairline)]">
+        <div className="border-t border-[var(--hairline)]">
           <AssignmentCard />
         </div>
       </Panel>

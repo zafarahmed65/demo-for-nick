@@ -21,13 +21,6 @@ import {
   type HoldReason,
 } from "./persistence";
 import type { ClosedLead } from "./attribution";
-import { GUIDE_STEPS, type GuideFacts } from "./guide";
-import {
-  FORCED_BY_SCENARIO,
-  singleBrokerMunicipality,
-  type ForcedResponse,
-  type ScenarioKey,
-} from "./scenarios";
 import type {
   Agent,
   Jurisdiction,
@@ -109,7 +102,6 @@ interface StoreValue {
   setView: (v: View) => void;
   jurisdictionFormOpen: boolean;
   setJurisdictionFormOpen: (open: boolean) => void;
-  runScenario: (key: ScenarioKey) => void;
 
   /** Every lead created this session, for attribution. */
   routedLeads: Lead[];
@@ -117,17 +109,6 @@ interface StoreValue {
   closings: ClosedLead[];
   advanceStage: () => void;
   closeLead: () => void;
-
-  /* --- Guided walkthrough --- */
-  guideOpen: boolean;
-  guideStep: number;
-  guideFacts: GuideFacts;
-  /** Steps the visitor has genuinely completed, in order. */
-  guideDone: boolean[];
-  openGuide: () => void;
-  dismissGuide: () => void;
-  goToStep: (index: number) => void;
-  showStep: () => void;
 }
 
 export type View = "simulator" | "jurisdictions" | "attribution";
@@ -179,16 +160,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>(SEED_JURISDICTIONS);
   const [jurisdictionCode, setJurisdictionCodeRaw] = useState("QC");
   // Quebec is the default market, so French is what renders on first paint.
-  const [guideDismissed, setGuideDismissed] = useState(false);
-  const [guideStep, setGuideStep] = useState(0);
-  const [localeSwitched, setLocaleSwitched] = useState(false);
   const [hasReassigned, setHasReassigned] = useState(false);
   const [hasEscalated, setHasEscalated] = useState(false);
   const [locale, setLocaleRaw] = useState<Locale>("fr");
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleRaw(next);
-    setLocaleSwitched(true);
-  }, []);
+  const setLocale = setLocaleRaw;
   const [agents, setAgents] = useState<Agent[]>(SEED_AGENTS);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [trace, setTrace] = useState<TraceEntry[]>([]);
@@ -201,10 +176,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<View>("simulator");
   const [jurisdictionFormOpen, setJurisdictionFormOpen] = useState(false);
 
-  /* Scenario-forced responses, indexed by escalation level. Held in a ref
-     rather than state because a scenario sets it and immediately triggers a
-     lead — a state update would not be visible to that same call. */
-  const forcedRef = useRef<ForcedResponse[] | null>(null);
   const [routedLeads, setRoutedLeads] = useState<Lead[]>([]);
   const [closings, setClosings] = useState<ClosedLead[]>([]);
   const [now, setNow] = useState(() => Date.now());
@@ -263,9 +234,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (lead: Lead, plan: RoutingPlan, level: number, windowMs: number) => {
       const agent = plan.escalationOrder[level];
       const at = Date.now();
-      const forced = forcedRef.current?.[level];
-      const willAccept =
-        forced === undefined ? Math.random() < agent.responsiveness : forced === "accept";
+      const willAccept = Math.random() < agent.responsiveness;
       commitPhase({
         kind: "awaiting",
         state: {
@@ -285,8 +254,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const trigger = useCallback(
-    (override?: string, keepScript = false, windowMsOverride?: number) => {
-      if (!keepScript) forcedRef.current = null;
+    (override?: string, windowMsOverride?: number) => {
       const town = override ?? municipality;
       const lead = makeLead(jurisdiction.code, town, locale);
       const plan = routeLead(lead, jurisdiction, agents);
@@ -506,11 +474,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
 
       const at = Date.now();
-      const forced = forcedRef.current?.[nextLevel];
-      const willAccept =
-        forced === undefined
-          ? Math.random() < nextAgent.responsiveness
-          : forced === "accept";
+      const willAccept = Math.random() < nextAgent.responsiveness;
       commitPhase({
         kind: "awaiting",
         state: {
@@ -538,11 +502,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setAgents(SEED_AGENTS);
     setRoutedLeads([]);
     setClosings([]);
-    setLocaleSwitched(false);
     setHasReassigned(false);
     setHasEscalated(false);
-    setGuideStep(0);
-    setGuideDismissed(false);
     setMunicipalityOverride(null);
     setJurisdictions(SEED_JURISDICTIONS);
     setJurisdictionCodeRaw("QC");
@@ -616,7 +577,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ]);
         setHeld((prev) => prev.filter((h) => h.lead.id !== leadId));
         setHasReassigned(true);
-        forcedRef.current = null;
         assignTo(
           entry.lead,
           { ...plan, escalationOrder: [target] },
@@ -628,101 +588,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       setHeld((prev) => prev.filter((h) => h.lead.id !== leadId));
       setHasReassigned(true);
-      forcedRef.current = null;
       assignTo(entry.lead, plan, 0, slaMs);
     },
     [agents, assignTo, held, jurisdiction, jurisdictions, pushTrace, slaMs],
   );
-
-  /**
-   * Scenario setup. Each one arranges the board and stops; the visitor still
-   * presses the trigger, because a demo you only watch is a slower video.
-   */
-  const runScenario = useCallback(
-    (key: ScenarioKey) => {
-      if (key === "new-market") {
-        setView("jurisdictions");
-        setJurisdictionFormOpen(true);
-        return;
-      }
-
-      setView("simulator");
-      // Compressed SLA, or the visitor waits a full minute for the payoff.
-      const scenarioSpeed = 10;
-      setSpeed(scenarioSpeed);
-      // setSpeed will not have been applied by the time trigger runs, so the
-      // window is passed explicitly rather than read from a stale slaMs.
-      const scenarioWindowMs = Math.round(
-        (jurisdiction.slaSeconds * 1000) / scenarioSpeed,
-      );
-
-      if (key === "no-response") {
-        forcedRef.current = FORCED_BY_SCENARIO["no-response"] ?? null;
-        setMunicipalityOverride(null); // busiest town — deepest bench
-        trigger(undefined, true, scenarioWindowMs);
-        return;
-      }
-
-      // at-capacity: fill the only broker covering some town, then send a lead
-      // there so the capacity cap is what stops it.
-      const solo = singleBrokerMunicipality(jurisdiction, agents);
-      if (!solo) return;
-      setAgents((prev) =>
-        prev.map((a) =>
-          a.id === solo.agent.id ? { ...a, activeFiles: a.capacity } : a,
-        ),
-      );
-      setMunicipalityOverride(solo.town);
-      forcedRef.current = null;
-      // Routing must see the filled roster, so hand it the updated list.
-      const filled = agents.map((a) =>
-        a.id === solo.agent.id ? { ...a, activeFiles: a.capacity } : a,
-      );
-      const lead = makeLead(jurisdiction.code, solo.town, locale);
-      const plan = routeLead(lead, jurisdiction, filled);
-      setTrace(plan.steps.map((step, index) => ({ ...step, batchIndex: index })));
-      commitPhase({ kind: "held", lead });
-      setHeld((prev) => [
-        { lead, escalations: 0, reason: "unrouted" as HoldReason },
-        ...prev,
-      ]);
-    },
-    [agents, commitPhase, jurisdiction, locale, trigger],
-  );
-
-  /* --- Guided walkthrough ------------------------------------------------
-     Facts are derived from state the store already holds, so a step can only
-     be marked done because the thing genuinely happened. */
-  const guideFacts: GuideFacts = useMemo(
-    () => ({
-      localeSwitched,
-      hasRouted: routedLeads.length > 0,
-      hasEscalated,
-      hasReassigned,
-      hasRuntimeMarket: jurisdictions.some((j) => j.createdAtRuntime),
-      hasClosing: closings.length > 0,
-    }),
-    [closings.length, hasEscalated, hasReassigned, jurisdictions, localeSwitched, routedLeads.length],
-  );
-
-  const guideDone = useMemo(
-    () => GUIDE_STEPS.map((step) => step.isDone(guideFacts)),
-    [guideFacts],
-  );
-
-  const openGuide = useCallback(() => setGuideDismissed(false), []);
-  const dismissGuide = useCallback(() => setGuideDismissed(true), []);
-  const goToStep = useCallback((index: number) => {
-    setGuideStep(Math.max(0, Math.min(index, GUIDE_STEPS.length - 1)));
-  }, []);
-
-  /** Take the visitor to this step's view and run its scenario, if it has one. */
-  const showStep = useCallback(() => {
-    const step = GUIDE_STEPS[guideStep];
-    if (!step) return;
-    setView(step.view);
-    if (step.scenario) runScenario(step.scenario);
-  }, [guideStep, runScenario]);
 
   const addJurisdiction = useCallback((input: NewJurisdictionInput) => {
     const preset = WORKFLOW_PRESETS[input.preset] ?? WORKFLOW_PRESETS["ca-standard"];
@@ -811,9 +680,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setHeld(stored.held);
       setRoutedLeads(stored.routedLeads);
       setClosings(stored.closings);
-      setGuideDismissed(stored.guideDismissed);
-      setGuideStep(stored.guideStep);
-      setLocaleSwitched(stored.localeSwitched);
       setHasEscalated(stored.hasEscalated);
       setHasReassigned(stored.hasReassigned);
     }
@@ -834,9 +700,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       held,
       routedLeads,
       closings,
-      guideDismissed,
-      guideStep,
-      localeSwitched,
       hasEscalated,
       hasReassigned,
     });
@@ -851,9 +714,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     held,
     routedLeads,
     closings,
-    guideDismissed,
-    guideStep,
-    localeSwitched,
     hasEscalated,
     hasReassigned,
   ]);
@@ -912,19 +772,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setView,
     jurisdictionFormOpen,
     setJurisdictionFormOpen,
-    runScenario,
     routedLeads,
     closings,
     advanceStage,
     closeLead,
-    guideOpen: !guideDismissed,
-    guideStep,
-    guideFacts,
-    guideDone,
-    openGuide,
-    dismissGuide,
-    goToStep,
-    showStep,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { campaignRows, campaignTotals, type ClosedLead } from "./attribution";
-import { GUIDE_STEPS } from "./guide";
 import type { Campaign, Lead } from "./types";
 
 const CAMPAIGN: Campaign = {
@@ -84,50 +83,5 @@ describe("cost per closing", () => {
     expect(totals.spend).toBe(5100);
     expect(totals.closings).toBe(10);
     expect(totals.costPerClosing).toBeCloseTo(510);
-  });
-});
-
-describe("guide completion predicates", () => {
-  const none = {
-    localeSwitched: false,
-    hasRouted: false,
-    hasEscalated: false,
-    hasReassigned: false,
-    hasRuntimeMarket: false,
-    hasClosing: false,
-  };
-
-  it("marks nothing done before anything has happened", () => {
-    expect(GUIDE_STEPS.map((s) => s.isDone(none))).toEqual([
-      false, false, false, false, false, false,
-    ]);
-  });
-
-  it("requires the real event for each step, not merely any activity", () => {
-    // Routing a lead must not tick the escalation step.
-    const routed = { ...none, hasRouted: true };
-    expect(GUIDE_STEPS[1].isDone(routed)).toBe(true);
-    expect(GUIDE_STEPS[2].isDone(routed)).toBe(false);
-    expect(GUIDE_STEPS[5].isDone(routed)).toBe(false);
-  });
-
-  it("marks every step done once every fact is true", () => {
-    const all = {
-      localeSwitched: true,
-      hasRouted: true,
-      hasEscalated: true,
-      hasReassigned: true,
-      hasRuntimeMarket: true,
-      hasClosing: true,
-    };
-    expect(GUIDE_STEPS.every((s) => s.isDone(all))).toBe(true);
-  });
-
-  it("quotes the brief in English on every step", () => {
-    for (const step of GUIDE_STEPS) {
-      expect(step.quote.length).toBeGreaterThan(20);
-      // Quotations stay in the language he wrote them in.
-      expect(step.quote).not.toMatch(/[àâçéèêëîïôûùü]/i);
-    }
   });
 });

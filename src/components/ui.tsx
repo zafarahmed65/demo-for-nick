@@ -22,15 +22,17 @@ export function Panel({
 }) {
   return (
     <section
-      className={`bg-white border border-[var(--hairline)] rounded-md ${className}`}
+      className={`bg-white border border-[var(--hairline)] rounded-lg shadow-[var(--lift)] ${className}`}
     >
       {title && (
-        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 min-h-11 border-b border-[var(--hairline)]">
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pt-4 pb-3">
           <div className="flex items-baseline gap-2.5 min-w-0">
-            <h2 className="text-2xs font-medium uppercase tracking-[0.07em] text-ink-500 whitespace-nowrap">
+            {/* Sentence case, normal size. Uppercase micro-labels on every
+                panel is what made this read as an old admin tool. */}
+            <h2 className="text-small font-medium text-ink-900 whitespace-nowrap">
               {title}
             </h2>
-            {meta && <span className="text-2xs text-ink-400 truncate">{meta}</span>}
+            {meta && <span className="text-small text-ink-400 truncate">{meta}</span>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </header>
@@ -60,14 +62,15 @@ export function Button({
   const base =
     "inline-flex items-center justify-center gap-1.5 font-medium rounded-sm transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap";
   const sizes = {
-    sm: "h-7 px-2.5 text-2xs",
-    md: "h-8 px-3 text-xs",
+    sm: "h-8 px-3 text-small",
+    md: "h-9 px-3.5 text-small",
   };
   const variants = {
-    primary: "bg-pine-600 text-white hover:bg-pine-700",
+    primary:
+      "bg-pine-600 text-white hover:bg-pine-700 shadow-[var(--lift)]",
     secondary:
-      "bg-white text-ink-700 border border-ink-300 hover:bg-ink-50 hover:border-ink-400",
-    ghost: "text-ink-600 hover:bg-ink-150 hover:text-ink-900",
+      "bg-white text-ink-700 border border-[var(--hairline-strong)] hover:bg-ink-50 hover:text-ink-900",
+    ghost: "text-ink-500 hover:bg-ink-100 hover:text-ink-900",
     danger:
       "bg-white text-danger-700 border border-danger-200 hover:bg-danger-50",
   };
@@ -97,13 +100,11 @@ export function Segmented<T extends string>({
   return (
     <div>
       {label && (
-        <div className="text-2xs uppercase tracking-[0.07em] text-ink-500 mb-1.5 font-medium">
-          {label}
-        </div>
+        <div className="text-small text-ink-500 mb-1.5">{label}</div>
       )}
       <div
         role="radiogroup"
-        className="inline-flex w-full p-0.5 bg-ink-150 rounded-sm gap-0.5"
+        className="inline-flex w-full p-1 bg-ink-100 rounded-md gap-1"
       >
         {options.map((option) => {
           const active = option.value === value;
@@ -114,10 +115,10 @@ export function Segmented<T extends string>({
               aria-checked={active}
               onClick={() => onChange(option.value)}
               title={option.hint}
-              className={`flex-1 h-7 px-2 text-2xs font-medium rounded-xs transition-all duration-150 ${
+              className={`flex-1 h-7 px-2.5 text-small font-medium rounded-sm transition-all duration-150 ${
                 active
-                  ? "bg-white text-ink-900 shadow-[0_1px_2px_rgba(26,23,20,0.06)]"
-                  : "text-ink-500 hover:text-ink-800"
+                  ? "bg-white text-ink-900 shadow-[var(--lift)]"
+                  : "text-ink-500 hover:text-ink-900"
               }`}
             >
               {option.label}
@@ -145,7 +146,7 @@ export function Badge({
   };
   return (
     <span
-      className={`inline-flex items-center h-[18px] px-1.5 rounded-xs text-2xs font-medium ${tones[tone]}`}
+      className={`inline-flex items-center h-[22px] px-2 rounded-sm text-micro font-medium ${tones[tone]}`}
     >
       {children}
     </span>
@@ -163,15 +164,15 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-2xs font-medium text-ink-600 mb-1">{label}</span>
+      <span className="block text-small text-ink-600 mb-1.5">{label}</span>
       {children}
-      {hint && <span className="block text-2xs text-ink-400 mt-1">{hint}</span>}
+      {hint && <span className="block text-micro text-ink-400 mt-1.5">{hint}</span>}
     </label>
   );
 }
 
 export const inputClass =
-  "w-full h-8 px-2.5 text-xs bg-white border border-ink-300 rounded-sm text-ink-900 placeholder:text-ink-400 focus:border-pine-500 focus:outline-none transition-colors duration-150";
+  "w-full h-9 px-3 text-small bg-white border border-[var(--hairline-strong)] rounded-sm text-ink-900 placeholder:text-ink-400 focus:border-pine-500 focus:outline-none transition-colors duration-150";
 
 export function Avatar({
   initials,
@@ -187,7 +188,7 @@ export function Avatar({
   };
   return (
     <span
-      className={`inline-flex items-center justify-center shrink-0 size-6 rounded-full text-2xs font-semibold ${tones[tone]}`}
+      className={`inline-flex items-center justify-center shrink-0 size-7 rounded-full text-micro font-semibold ${tones[tone]}`}
     >
       {initials}
     </span>
@@ -200,7 +201,7 @@ export function Meter({ value, max }: { value: number; max: number }) {
   const tone =
     ratio >= 1 ? "bg-danger-500" : ratio >= 0.75 ? "bg-warn-500" : "bg-pine-500";
   return (
-    <div className="h-1 w-full bg-ink-150 rounded-full overflow-hidden">
+    <div className="h-1.5 w-full bg-ink-150 rounded-full overflow-hidden">
       <div
         className={`h-full rounded-full transition-[width] duration-300 ${tone}`}
         style={{ width: `${ratio * 100}%` }}
